@@ -158,7 +158,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
     <div class="view" id="v-detail">
       <div class="topbar">
         <button class="ilink" style="font-size:13px;" onclick="showView('v-list')">← 返回列表</button>
-        <button class="abtn g sm" onclick="showEditFromDetail()">編輯備註</button>
       </div>
 
       <div class="card" id="detail-card">
@@ -198,7 +197,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
           <div class="divline"></div>
 
           <!-- 備註 -->
-          <div class="ct" style="margin-bottom:6px;">備註</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <div class="ct">備註</div>
+            <button class="abtn g sm" onclick="showEditFromDetail()">編輯備註</button>
+          </div>
           <div id="detail-note" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-line;min-height:20px;">—</div>
 
         </div>

@@ -151,14 +151,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
         <button class="abtn" onclick="showView('v-add')">＋ 新增課程紀錄</button>
       </div>
 
-      <!-- 三個 Tab -->
-      <div class="tabs">
-        <button class="tab on" onclick="switchTab('t-records')">課程紀錄</button>
-        <button class="tab" onclick="switchTab('t-schedule')">週課表設定</button>
-      </div>
-
-      <!-- Tab：課程紀錄 -->
-      <div class="tabpanel on" id="t-records">
+      <!-- 區塊 1：課程紀錄 -->
+      <div id="t-records" style="margin-bottom:20px;">
         <div class="card">
           <div class="cardtop">
             <span class="ct">近期課程紀錄</span>
@@ -172,8 +166,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
         </div>
       </div>
 
-      <!-- Tab：週課表設定 -->
-      <div class="tabpanel" id="t-schedule">
+      <!-- 區塊 2：週課表設定 -->
+      <div id="t-schedule">
         <div class="card">
           <div class="cardtop">
             <span class="ct">週課表設定</span>
@@ -181,12 +175,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
           </div>
           <div class="loading" id="schedule-loading">載入中…</div>
           <div id="schedule-list"></div>
-          <div id="schedule-empty" style="display:none;font-size:12px;color:var(--text2);padding:8px 0;">
-            尚無週課表資料，請先在 Notion 建立
+          <div id="schedule-empty" style="display:none;font-size:12px;color:var(--text2);padding:8px 0;text-align:center;">
+            尚無週課表資料<br>
+            <button class="abtn" style="margin-top:10px;" onclick="initWeeklySchedule()">初始化預設課表 (週一~週日)</button>
           </div>
-        </div>
-        <div style="font-size:11px;color:var(--text3);padding:0 2px;">
-          ＊ 週課表直接在 Notion WeeklySchedule 資料表修改，此頁為唯讀顯示
         </div>
       </div>
     </div>
@@ -293,6 +285,57 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
           <div class="ct" style="margin-bottom:6px;">備註</div>
           <div id="detail-note" style="font-size:13px;color:var(--text2);white-space:pre-line;">—</div>
 
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         VIEW 4：編輯週課表
+    ══════════════════════════════════ -->
+    <div class="view" id="v-schedule-edit">
+      <div class="topbar">
+        <button class="ilink" style="font-size:13px;" onclick="showView('v-main')">← 返回列表</button>
+      </div>
+      <div class="card">
+        <div class="ct" style="margin-bottom:12px;" id="sch-edit-title">編輯課表</div>
+        <div class="fbg">
+          <div id="sch-err" class="err" style="display:none;"></div>
+          <div id="sch-success" class="success" style="display:none;"></div>
+
+          <input type="hidden" id="sch-page-id">
+
+          <div class="frow2" style="margin-bottom:10px;">
+            <div class="fg" style="margin-bottom:0;">
+              <label class="fl">開始時間</label>
+              <input class="fi" id="sch-start" placeholder="如 16:30">
+            </div>
+            <div class="fg" style="margin-bottom:0;">
+              <label class="fl">結束時間</label>
+              <input class="fi" id="sch-end" placeholder="如 19:30">
+            </div>
+          </div>
+          <div class="fg">
+            <label class="fl">人數上限</label>
+            <input class="fi" type="number" id="sch-cap" min="0" value="6">
+          </div>
+
+          <div style="background:var(--bg);padding:10px;border-radius:var(--radius-md);margin-bottom:12px;border:0.5px solid var(--border2);">
+            <div style="display:flex;align-items:center;margin-bottom:6px;">
+              <input type="checkbox" id="sch-closed" style="margin-right:6px;">
+              <label for="sch-closed" style="font-size:13px;font-weight:500;">當日關閉</label>
+            </div>
+            <div style="font-size:11px;color:var(--text2);margin-left:20px;">勾選後整日將不開放，不顯示時間</div>
+          </div>
+
+          <div style="background:var(--amber-light);padding:10px;border-radius:var(--radius-md);margin-bottom:12px;">
+            <div style="display:flex;align-items:center;margin-bottom:6px;">
+              <input type="checkbox" id="sch-paused" style="margin-right:6px;">
+              <label for="sch-paused" style="font-size:13px;font-weight:500;color:var(--amber);">臨時暫停</label>
+            </div>
+            <input class="fi" id="sch-pause-note" placeholder="暫停說明 (選填)" style="background:rgba(255,255,255,0.7);border-color:transparent;">
+          </div>
+
+          <button class="abtn" id="sch-save-btn" onclick="submitSchedule()">儲存修改</button>
         </div>
       </div>
     </div>
@@ -582,18 +625,22 @@ async function loadSchedule() {
       row.className = "sch-row";
 
       let statusBadge = "";
-      if (closed)      statusBadge = `<span class="badge" style="background:#eee;color:var(--text3);">關閉</span>`;
-      else if (paused) statusBadge = `<span class="badge y">暫停</span>`;
-      else             statusBadge = `<span class="badge g">開放</span>`;
+      if (closed)      statusBadge = `<span style="font-size:11px;color:var(--text3);margin-left:8px;">已關閉</span>`;
+      else if (paused) statusBadge = `<span class="badge y" style="margin-left:8px;">暫停: ${pauseNote}</span>`;
+
+      let timeText = "已關閉";
+      if (!closed) timeText = (start && end) ? `${start}–${end}` : "未設定時段";
+      let capText = (!closed && cap > 0) ? ` · 上限 ${cap} 人` : "";
 
       row.innerHTML = `
-        <div class="sch-day">${day}</div>
-        <div class="sch-time">
-          ${(start && end) ? `${start} – ${end}` : (closed ? "（關閉）" : "—")}
-          ${pauseNote ? `<div style="font-size:10px;color:var(--amber);margin-top:1px;">${pauseNote}</div>` : ""}
+        <div class="sch-day ${closed?'':'active'}" style="color:${closed?'var(--text3)':'inherit'};">${day}</div>
+        <div class="sch-time" style="${closed?'color:var(--text3);':''}">
+          <span style="font-family:monospace;font-size:13px;letter-spacing:-0.5px;">${timeText}</span>${capText}
+          ${statusBadge}
         </div>
-        ${cap ? `<div class="sch-cap">上限 ${cap} 人</div>` : ""}
-        ${statusBadge}
+        <div>
+          <button class="ilink" style="margin-left:8px;" onclick='editSchedule(${JSON.stringify(sch).replace(/'/g, "\\'")})'>編輯</button>
+        </div>
       `;
       listEl.appendChild(row);
     });
@@ -701,7 +748,7 @@ async function submitAddSession() {
       "日期":      { date: { start: date } },
       "課程類型":  { select: { name: type } },
       "扣除堂數":  { number: deduct },
-      "Child":     { relation: Array.from(selectedChildIds).map(id => ({ id })) },
+      "出席孩子":  { relation: Array.from(selectedChildIds).map(id => ({ id })) },
     };
 
     if (slot) props["時段"] = { rich_text: [{ text: { content: slot } }] };
