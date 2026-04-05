@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SY 後台 · 一般課程</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --clay-rose:#C4A29E;--clay-sage:#9AAF9F;--clay-sand:#C2B49A;
+  --clay-rose-light:#EFE4E2;--clay-sage-light:#E3EDE5;--clay-sand-light:#EDE6DB;
+  --clay-rose-mid:#D4B8B4;--clay-sage-mid:#B5C9BA;--clay-sand-mid:#D4C8B4;
+  --clay-text-rose:#6B4845;--clay-text-sage:#3A5440;--clay-text-sand:#5C4E38;
+  --bg:#fff;--bg2:#f8f7f5;--bg3:#f2f0ec;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.15);
+  --text:#1a1a1a;--text2:#6b6b6b;--text3:#aaa;
+  --red-light:#fce8e8;--red:#a32d2d;
+  --amber-light:#faeeda;--amber:#854f0b;
+  --green-light:#eaf3de;--green:#3b6d11;
+  --radius-md:8px;--radius-lg:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg3);color:var(--text);}
+.shell{display:flex;min-height:100vh;}
+
+/* Sidebar */
+.sb{width:52px;background:var(--bg);border-right:0.5px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px;flex-shrink:0;}
+.si{width:36px;height:36px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;border:none;background:transparent;color:var(--text2);}
+.si.on{background:var(--clay-sage-light);color:var(--clay-text-sage);}
+.si:hover:not(.on){background:var(--bg2);}
+.sdiv{width:28px;height:0.5px;background:var(--border);margin:4px 0;}
+
+/* Main */
+.main{flex:1;overflow:auto;padding:16px;min-width:0;}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.topbar h2{font-size:15px;font-weight:500;}
+
+/* Tabs */
+.tabs{display:flex;gap:2px;background:var(--bg2);border-radius:var(--radius-md);padding:3px;margin-bottom:14px;}
+.tab{flex:1;text-align:center;font-size:12px;padding:6px 0;border-radius:6px;cursor:pointer;color:var(--text2);border:none;background:transparent;font-family:inherit;}
+.tab.on{background:var(--bg);color:var(--clay-text-sage);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+
+/* Card */
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:12px;}
+.cardtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.ct{font-size:12px;font-weight:500;color:var(--text2);}
+
+/* Rows */
+.row{display:flex;align-items:flex-start;gap:8px;padding:10px 0;border-bottom:0.5px solid var(--border);}
+.row:last-child{border-bottom:none;}
+.rname{font-size:13px;font-weight:500;}
+.rsub{font-size:11px;color:var(--text2);margin-top:2px;}
+
+/* Avatar */
+.av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;}
+.av.c0{background:var(--clay-sage-light);color:var(--clay-text-sage);}
+.av.c1{background:var(--clay-rose-light);color:var(--clay-text-rose);}
+.av.c2{background:var(--clay-sand-light);color:var(--clay-text-sand);}
+.av.c3{background:#FAEEDA;color:#854F0B;}
+.av.c4{background:#EEEDFE;color:#3C3489;}
+
+/* Badges */
+.badge{font-size:10px;border-radius:4px;padding:2px 6px;white-space:nowrap;}
+.badge.t{background:var(--clay-sage-light);color:var(--clay-text-sage);}
+.badge.pk{background:var(--clay-rose-light);color:var(--clay-text-rose);}
+.badge.y{background:var(--amber-light);color:var(--amber);}
+.badge.g{background:var(--green-light);color:var(--green);}
+
+/* Tags */
+.tag{display:inline-block;font-size:10px;border-radius:4px;padding:2px 5px;margin:1px;}
+.tag.t{background:var(--clay-sage-light);color:var(--clay-text-sage);}
+.tag.pk{background:var(--clay-rose-light);color:var(--clay-text-rose);}
+.tag.s{background:var(--clay-sand-light);color:var(--clay-text-sand);}
+
+/* Forms */
+.fl{font-size:11px;color:var(--text2);margin-bottom:3px;display:block;}
+.fi{width:100%;border:0.5px solid var(--border2);border-radius:var(--radius-md);padding:7px 9px;font-size:12px;background:var(--bg);color:var(--text);font-family:inherit;}
+.fi:focus{outline:none;border-color:var(--clay-sage);}
+.fg{margin-bottom:10px;}
+.frow2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.fbg{background:var(--bg2);border-radius:var(--radius-md);padding:12px;}
+
+/* Multi-select children chips */
+.child-sel-wrap{border:0.5px solid var(--border2);border-radius:var(--radius-md);padding:6px 8px;background:var(--bg);min-height:40px;display:flex;flex-wrap:wrap;gap:4px;cursor:text;}
+.child-sel-wrap .chip{display:inline-flex;align-items:center;gap:3px;background:var(--clay-sage-light);color:var(--clay-text-sage);border-radius:4px;padding:2px 6px;font-size:11px;}
+.child-sel-wrap .chip button{background:none;border:none;cursor:pointer;color:var(--clay-text-sage);font-size:11px;padding:0;line-height:1;}
+.child-dropdown{border:0.5px solid var(--border2);border-radius:var(--radius-md);background:var(--bg);max-height:150px;overflow-y:auto;margin-top:4px;display:none;}
+.child-dropdown.show{display:block;}
+.child-opt{padding:7px 10px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;}
+.child-opt:hover{background:var(--clay-sage-light);}
+.child-opt.selected{color:var(--clay-text-sage);font-weight:500;}
+
+/* Buttons */
+.abtn{background:var(--clay-sage);color:white;border:none;border-radius:var(--radius-md);padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit;}
+.abtn:disabled{opacity:.5;cursor:not-allowed;}
+.abtn.g{background:transparent;color:var(--clay-sage);border:0.5px solid var(--clay-sage-mid);}
+.abtn.sm{padding:4px 10px;font-size:11px;}
+.ilink{font-size:11px;color:var(--clay-sage);background:transparent;border:none;cursor:pointer;font-family:inherit;padding:0;}
+.refresh-btn{background:transparent;border:0.5px solid var(--clay-sage-mid);border-radius:var(--radius-md);color:var(--clay-sage);font-size:11px;padding:4px 10px;cursor:pointer;font-family:inherit;}
+
+/* Views */
+.view{display:none;}.view.on{display:block;}
+
+/* Tab panels */
+.tabpanel{display:none;}.tabpanel.on{display:block;}
+
+/* Loading / Error / Success */
+.loading{text-align:center;padding:20px;font-size:12px;color:var(--text3);}
+.err{background:var(--red-light);color:var(--red);border-radius:var(--radius-md);padding:8px 12px;font-size:12px;margin-bottom:10px;}
+.success{background:var(--green-light);color:var(--green);border-radius:var(--radius-md);padding:8px 12px;font-size:12px;margin-bottom:10px;}
+
+/* Divider */
+.divline{height:0.5px;background:var(--border);margin:10px 0;}
+
+/* Weekly schedule row */
+.sch-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:0.5px solid var(--border);}
+.sch-row:last-child{border-bottom:none;}
+.sch-day{font-size:13px;font-weight:500;min-width:36px;}
+.sch-time{font-size:12px;color:var(--text2);flex:1;}
+.sch-cap{font-size:11px;color:var(--text3);}
+
+/* Date badge */
+.date-badge{min-width:52px;flex-shrink:0;text-align:center;}
+.date-badge .dm{font-size:13px;font-weight:500;}
+.date-badge .dw{font-size:10px;color:var(--text2);}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <div class="sb">
+    <div class="si" title="儀表板" onclick="location.href='admin_dashboard_v1.html'">🏠</div>
+    <div class="si" title="孩子管理" onclick="location.href='admin_children_v1.html'">👦</div>
+    <div class="si" title="家長管理" onclick="location.href='admin_parents_v1.html'">👨‍👩‍👧</div>
+    <div class="sdiv"></div>
+    <div class="si on" title="一般課程">📋</div>
+    <div class="si" title="主題課程" onclick="location.href='admin_themes_v1.html'">🎨</div>
+    <div class="sdiv"></div>
+    <div class="si" title="近期付款" onclick="location.href='admin_payments_v1.html'">💰</div>
+    <div class="si" title="方案管理" onclick="location.href='admin_plans_v1.html'">⚙️</div>
+  </div>
+
+  <div class="main">
+
+    <!-- ══════════════════════════════════
+         VIEW 1：課程列表 + 新增 + 週課表
+    ══════════════════════════════════ -->
+    <div class="view on" id="v-main">
+      <div class="topbar">
+        <h2>一般課程</h2>
+        <button class="abtn" onclick="showView('v-add')">＋ 新增課程紀錄</button>
+      </div>
+
+      <!-- 三個 Tab -->
+      <div class="tabs">
+        <button class="tab on" onclick="switchTab('t-records')">課程紀錄</button>
+        <button class="tab" onclick="switchTab('t-schedule')">週課表設定</button>
+      </div>
+
+      <!-- Tab：課程紀錄 -->
+      <div class="tabpanel on" id="t-records">
+        <div class="card">
+          <div class="cardtop">
+            <span class="ct">近期課程紀錄</span>
+            <button class="refresh-btn" onclick="loadSessions()">↻ 重新整理</button>
+          </div>
+          <div class="loading" id="sessions-loading">載入中…</div>
+          <div id="sessions-list"></div>
+          <div id="sessions-empty" style="display:none;font-size:12px;color:var(--text2);padding:8px 0;">
+            尚無課程紀錄
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab：週課表設定 -->
+      <div class="tabpanel" id="t-schedule">
+        <div class="card">
+          <div class="cardtop">
+            <span class="ct">週課表設定</span>
+            <button class="refresh-btn" onclick="loadSchedule()">↻ 重新整理</button>
+          </div>
+          <div class="loading" id="schedule-loading">載入中…</div>
+          <div id="schedule-list"></div>
+          <div id="schedule-empty" style="display:none;font-size:12px;color:var(--text2);padding:8px 0;">
+            尚無週課表資料，請先在 Notion 建立
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);padding:0 2px;">
+          ＊ 週課表直接在 Notion WeeklySchedule 資料表修改，此頁為唯讀顯示
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         VIEW 2：新增課程紀錄
+    ══════════════════════════════════ -->
+    <div class="view" id="v-add">
+      <div class="topbar">
+        <button class="ilink" style="font-size:13px;" onclick="showView('v-main')">← 返回列表</button>
+      </div>
+      <div class="card">
+        <div class="ct" style="margin-bottom:12px;">新增課程紀錄</div>
+        <div class="fbg">
+          <div id="add-err" class="err" style="display:none;"></div>
+          <div id="add-success" class="success" style="display:none;"></div>
+
+          <div class="frow2" style="margin-bottom:10px;">
+            <div class="fg" style="margin-bottom:0;">
+              <label class="fl">上課日期 *</label>
+              <input class="fi" id="add-date" type="date">
+            </div>
+            <div class="fg" style="margin-bottom:0;">
+              <label class="fl">課程類型</label>
+              <select class="fi" id="add-type">
+                <option value="一般課程">一般課程</option>
+                <option value="主題課程">主題課程</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="frow2" style="margin-bottom:10px;">
+            <div class="fg" style="margin-bottom:0;">
+              <label class="fl">時段</label>
+              <input class="fi" id="add-slot" placeholder="如 16:30–18:00">
+            </div>
+            <div class="fg" style="margin-bottom:0;">
+              <label class="fl">扣除堂數</label>
+              <input class="fi" id="add-deduct" type="number" min="0" step="0.5" value="1">
+            </div>
+          </div>
+
+          <div class="fg">
+            <label class="fl">出席孩子 *（可多選）</label>
+            <!-- 已選孩子 chip 區 -->
+            <div class="child-sel-wrap" id="selected-chips" onclick="toggleDropdown()">
+              <span style="font-size:12px;color:var(--text3);" id="chips-placeholder">點擊選擇孩子…</span>
+            </div>
+            <!-- 下拉選單 -->
+            <div class="child-dropdown" id="child-dropdown"></div>
+          </div>
+
+          <div class="fg">
+            <label class="fl">備註</label>
+            <input class="fi" id="add-note" placeholder="如：下雨天人數較少">
+          </div>
+
+          <button class="abtn" id="add-btn" onclick="submitAddSession()">儲存課程紀錄</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         VIEW 3：課程詳細頁
+    ══════════════════════════════════ -->
+    <div class="view" id="v-detail">
+      <div class="topbar">
+        <button class="ilink" style="font-size:13px;" onclick="showView('v-main')">← 返回列表</button>
+        <button class="abtn g sm" onclick="confirmDelete()">刪除此紀錄</button>
+      </div>
+      <div class="card">
+        <div class="loading" id="detail-loading">載入中…</div>
+        <div id="detail-content" style="display:none;">
+
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+            <span style="font-size:22px;">📋</span>
+            <div>
+              <div style="font-size:15px;font-weight:500;" id="detail-title"></div>
+              <div style="font-size:12px;color:var(--text2);" id="detail-meta"></div>
+            </div>
+          </div>
+
+          <div class="divline"></div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+            <div style="background:var(--bg2);border-radius:var(--radius-md);padding:8px 10px;">
+              <div style="font-size:10px;color:var(--text2);margin-bottom:2px;">扣除堂數</div>
+              <div style="font-size:16px;font-weight:500;" id="detail-deduct">—</div>
+            </div>
+            <div style="background:var(--bg2);border-radius:var(--radius-md);padding:8px 10px;">
+              <div style="font-size:10px;color:var(--text2);margin-bottom:2px;">出席人數</div>
+              <div style="font-size:16px;font-weight:500;" id="detail-count">—</div>
+            </div>
+            <div style="background:var(--bg2);border-radius:var(--radius-md);padding:8px 10px;">
+              <div style="font-size:10px;color:var(--text2);margin-bottom:2px;">課程類型</div>
+              <div style="font-size:12px;font-weight:500;margin-top:3px;" id="detail-type">—</div>
+            </div>
+          </div>
+
+          <div class="ct" style="margin-bottom:8px;">出席孩子</div>
+          <div id="detail-children" style="margin-bottom:12px;"></div>
+
+          <div class="divline"></div>
+          <div class="ct" style="margin-bottom:6px;">備註</div>
+          <div id="detail-note" style="font-size:13px;color:var(--text2);white-space:pre-line;">—</div>
+
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+// ============================================================
+// ★ 設定 ── 換教室時只需修改這裡 ★
+// ============================================================
+const CONFIG = {
+  NOTION_API_KEY:     "填入你的 Notion API Key",  // ← 必填
+  NOTION_DB_SESSION:  "338c38a5-6efe-80a0-9801-d9517c8431ef",
+  NOTION_DB_CHILD:    "338c38a5-6efe-802c-9ea8-edd4375e28c5",
+  NOTION_DB_SCHEDULE: "338c38a5-6efe-806e-ad05-eaadfcf1be61",
+};
+// ============================================================
+
+// ── Notion API ────────────────────────────────────────────
+
+const NOTION_HEADERS = () => ({
+  "Authorization": `Bearer ${CONFIG.NOTION_API_KEY}`,
+  "Notion-Version": "2022-06-28",
+  "Content-Type": "application/json",
+});
+
+async function notionQuery(dbId, filter = null, sorts = null) {
+  const body = { page_size: 100 };
+  if (filter) body.filter = filter;
+  if (sorts)  body.sorts  = sorts;
+  const res = await fetch(`https://api.notion.com/v1/databases/${dbId}/query`, {
+    method: "POST", headers: NOTION_HEADERS(), body: JSON.stringify(body),
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+  return (await res.json()).results || [];
+}
+
+async function notionCreate(dbId, properties) {
+  const res = await fetch("https://api.notion.com/v1/pages", {
+    method: "POST", headers: NOTION_HEADERS(),
+    body: JSON.stringify({ parent: { database_id: dbId }, properties }),
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+  return await res.json();
+}
+
+async function notionDelete(pageId) {
+  const res = await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
+    method: "PATCH", headers: NOTION_HEADERS(),
+    body: JSON.stringify({ archived: true }),
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+  return await res.json();
+}
+
+// ── 工具函式 ─────────────────────────────────────────────────
+
+const AV_COLORS = ["c0","c1","c2","c3","c4"];
+const avColor = (i) => AV_COLORS[i % AV_COLORS.length];
+
+function formatDate(str) {
+  if (!str) return "—";
+  const d = new Date(str + "T00:00:00+08:00");
+  const days = ["日","一","二","三","四","五","六"];
+  return `${d.getMonth()+1}/${d.getDate()}（週${days[d.getDay()]}）`;
+}
+
+function showView(id) {
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("on"));
+  document.getElementById(id).classList.add("on");
+}
+
+function switchTab(tabId) {
+  document.querySelectorAll(".tabpanel").forEach(p => p.classList.remove("on"));
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("on"));
+  document.getElementById(tabId).classList.add("on");
+  // 找對應的 tab button
+  const idx = tabId === "t-records" ? 0 : 1;
+  document.querySelectorAll(".tab")[idx].classList.add("on");
+  // 切到課表時載入
+  if (tabId === "t-schedule" && !scheduleLoaded) loadSchedule();
+}
+
+function showErr(elId, msg) {
+  const el = document.getElementById(elId);
+  el.textContent = "⚠ " + msg;
+  el.style.display = "";
+}
+
+function hideMsg(elId) {
+  document.getElementById(elId).style.display = "none";
+}
+
+// ── 全域狀態 ─────────────────────────────────────────────────
+
+let allChildren    = [];  // 快取孩子列表
+let allSessions    = [];  // 快取課程列表
+let selectedChildIds = new Set(); // 新增表單已選孩子
+let currentSession = null; // 目前正在檢視的課程
+let scheduleLoaded = false;
+
+// ── 課程列表 ─────────────────────────────────────────────────
+
+async function loadSessions() {
+  const loadingEl = document.getElementById("sessions-loading");
+  const listEl    = document.getElementById("sessions-list");
+  const emptyEl   = document.getElementById("sessions-empty");
+
+  listEl.innerHTML = "";
+  emptyEl.style.display = "none";
+  loadingEl.style.display = "";
+
+  try {
+    // 同時載入課程與孩子
+    [allSessions, allChildren] = await Promise.all([
+      notionQuery(CONFIG.NOTION_DB_SESSION, null, [{ property: "日期", direction: "descending" }]),
+      notionQuery(CONFIG.NOTION_DB_CHILD),
+    ]);
+
+    loadingEl.style.display = "none";
+
+    if (allSessions.length === 0) { emptyEl.style.display = ""; return; }
+
+    // 建立 childId → name Map
+    const childMap = {};
+    allChildren.forEach(c => {
+      childMap[c.id] = c.properties["暱稱"]?.title?.[0]?.text?.content || "未知";
+    });
+
+    allSessions.forEach((s, idx) => {
+      const dateStr  = s.properties["日期"]?.date?.start || "";
+      const type     = s.properties["課程類型"]?.select?.name || "一般課程";
+      const slot     = s.properties["時段"]?.rich_text?.[0]?.text?.content || "";
+      const deduct   = s.properties["扣除堂數"]?.number ?? 1;
+      const note     = s.properties["備註"]?.rich_text?.[0]?.text?.content || "";
+      const childRels = s.properties["Child"]?.relation || [];
+      const childNames = childRels.map(r => childMap[r.id] || "?");
+
+      const typeClass = type === "主題課程" ? "pk" : "t";
+      const d = dateStr ? new Date(dateStr + "T00:00:00+08:00") : null;
+      const weekdays = ["日","一","二","三","四","五","六"];
+
+      const row = document.createElement("div");
+      row.className = "row";
+      row.style.cursor = "pointer";
+      row.onclick = () => showDetail(s.id);
+
+      row.innerHTML = `
+        <div class="date-badge">
+          <div class="dm">${d ? `${d.getMonth()+1}/${d.getDate()}` : "—"}</div>
+          <div class="dw">${d ? `週${weekdays[d.getDay()]}` : ""}</div>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+            <span class="rname">${type}</span>
+            <span class="badge ${typeClass}">${slot || "—"}</span>
+            <span class="badge y">扣 ${deduct} 堂</span>
+          </div>
+          <div style="margin-top:4px;">
+            ${childNames.length > 0
+              ? childNames.map((n,i) => `<span class="tag ${["t","pk","s","t","pk"][i%5]}">${n}</span>`).join("")
+              : `<span style="font-size:11px;color:var(--text3);">無出席孩子</span>`}
+          </div>
+          ${note ? `<div class="rsub">${note}</div>` : ""}
+        </div>
+        <div style="font-size:11px;color:var(--text3);flex-shrink:0;">${childNames.length} 人</div>
+      `;
+      listEl.appendChild(row);
+    });
+
+  } catch (e) {
+    loadingEl.style.display = "none";
+    console.error("loadSessions 錯誤:", e);
+    emptyEl.style.display = "";
+    emptyEl.textContent = "載入失敗：" + e.message;
+  }
+}
+
+// ── 課程詳細頁 ───────────────────────────────────────────────
+
+async function showDetail(sessionId) {
+  showView("v-detail");
+  document.getElementById("detail-loading").style.display = "";
+  document.getElementById("detail-content").style.display = "none";
+
+  const s = allSessions.find(x => x.id === sessionId);
+  if (!s) { document.getElementById("detail-loading").textContent = "⚠ 找不到資料"; return; }
+
+  currentSession = s;
+
+  const dateStr  = s.properties["日期"]?.date?.start || "";
+  const type     = s.properties["課程類型"]?.select?.name || "一般課程";
+  const slot     = s.properties["時段"]?.rich_text?.[0]?.text?.content || "";
+  const deduct   = s.properties["扣除堂數"]?.number ?? 1;
+  const note     = s.properties["備註"]?.rich_text?.[0]?.text?.content || "";
+  const childRels = s.properties["Child"]?.relation || [];
+
+  // 建立 childId → name Map
+  const childMap = {};
+  allChildren.forEach(c => { childMap[c.id] = c.properties["暱稱"]?.title?.[0]?.text?.content || "未知"; });
+
+  document.getElementById("detail-title").textContent = `${formatDate(dateStr)} ${type}`;
+  document.getElementById("detail-meta").textContent  = slot || "未填時段";
+  document.getElementById("detail-deduct").textContent = deduct;
+  document.getElementById("detail-count").textContent  = childRels.length;
+  document.getElementById("detail-type").textContent   = type;
+  document.getElementById("detail-note").textContent   = note || "（無備註）";
+
+  // 出席孩子
+  const childrenEl = document.getElementById("detail-children");
+  childrenEl.innerHTML = "";
+  if (childRels.length === 0) {
+    childrenEl.innerHTML = `<span style="font-size:12px;color:var(--text3);">無出席孩子記錄</span>`;
+  } else {
+    childRels.forEach((r, i) => {
+      const name = childMap[r.id] || "未知";
+      const chip = document.createElement("span");
+      chip.style.cssText = "display:inline-flex;align-items:center;gap:4px;background:var(--clay-sage-light);border-radius:6px;padding:4px 8px;font-size:12px;color:var(--clay-text-sage);margin:2px;";
+      chip.innerHTML = `
+        <span style="width:18px;height:18px;border-radius:50%;background:var(--clay-sage-mid);display:inline-flex;align-items:center;justify-content:center;font-size:10px;">${name[0]||"?"}</span>
+        ${name}
+      `;
+      childrenEl.appendChild(chip);
+    });
+  }
+
+  document.getElementById("detail-loading").style.display  = "none";
+  document.getElementById("detail-content").style.display  = "";
+}
+
+async function confirmDelete() {
+  if (!currentSession) return;
+  const dateStr = currentSession.properties["日期"]?.date?.start || "";
+  if (!confirm(`確定要刪除 ${formatDate(dateStr)} 的課程紀錄嗎？\n此操作無法復原。`)) return;
+  try {
+    await notionDelete(currentSession.id);
+    allSessions = allSessions.filter(s => s.id !== currentSession.id);
+    currentSession = null;
+    showView("v-main");
+    loadSessions();
+  } catch (e) {
+    alert("刪除失敗：" + e.message);
+  }
+}
+
+// ── 週課表 ───────────────────────────────────────────────────
+
+async function loadSchedule() {
+  const loadingEl = document.getElementById("schedule-loading");
+  const listEl    = document.getElementById("schedule-list");
+  const emptyEl   = document.getElementById("schedule-empty");
+
+  listEl.innerHTML = "";
+  emptyEl.style.display = "none";
+  loadingEl.style.display = "";
+  scheduleLoaded = true;
+
+  try {
+    const schedules = await notionQuery(CONFIG.NOTION_DB_SCHEDULE);
+    loadingEl.style.display = "none";
+
+    if (schedules.length === 0) { emptyEl.style.display = ""; return; }
+
+    // 依星期順序排序（週一→週日）
+    const dayOrder = { "週一":1,"週二":2,"週三":3,"週四":4,"週五":5,"週六":6,"週日":7 };
+    schedules.sort((a, b) => {
+      const da = a.properties["星期"]?.title?.[0]?.text?.content || "";
+      const db = b.properties["星期"]?.title?.[0]?.text?.content || "";
+      return (dayOrder[da] || 9) - (dayOrder[db] || 9);
+    });
+
+    schedules.forEach(sch => {
+      const day      = sch.properties["星期"]?.title?.[0]?.text?.content || "—";
+      const start    = sch.properties["開始時間"]?.rich_text?.[0]?.text?.content || "";
+      const end      = sch.properties["結束時間"]?.rich_text?.[0]?.text?.content || "";
+      const cap      = sch.properties["人數上限"]?.number || 0;
+      const paused   = sch.properties["臨時暫停"]?.checkbox || false;
+      const closed   = sch.properties["當日關閉"]?.checkbox || false;
+      const pauseNote = sch.properties["暫停說明"]?.rich_text?.[0]?.text?.content || "";
+
+      const row = document.createElement("div");
+      row.className = "sch-row";
+
+      let statusBadge = "";
+      if (closed)      statusBadge = `<span class="badge" style="background:#eee;color:var(--text3);">關閉</span>`;
+      else if (paused) statusBadge = `<span class="badge y">暫停</span>`;
+      else             statusBadge = `<span class="badge g">開放</span>`;
+
+      row.innerHTML = `
+        <div class="sch-day">${day}</div>
+        <div class="sch-time">
+          ${(start && end) ? `${start} – ${end}` : (closed ? "（關閉）" : "—")}
+          ${pauseNote ? `<div style="font-size:10px;color:var(--amber);margin-top:1px;">${pauseNote}</div>` : ""}
+        </div>
+        ${cap ? `<div class="sch-cap">上限 ${cap} 人</div>` : ""}
+        ${statusBadge}
+      `;
+      listEl.appendChild(row);
+    });
+
+  } catch (e) {
+    loadingEl.style.display = "none";
+    emptyEl.style.display = "";
+    emptyEl.textContent = "載入失敗：" + e.message;
+    console.error(e);
+  }
+}
+
+// ── 新增課程：孩子多選 ───────────────────────────────────────
+
+function toggleDropdown() {
+  const dd = document.getElementById("child-dropdown");
+  dd.classList.toggle("show");
+}
+
+document.addEventListener("click", (e) => {
+  const wrap = document.getElementById("selected-chips");
+  const dd   = document.getElementById("child-dropdown");
+  if (wrap && dd && !wrap.contains(e.target) && !dd.contains(e.target)) {
+    dd.classList.remove("show");
+  }
+});
+
+function renderDropdown() {
+  const dd = document.getElementById("child-dropdown");
+  dd.innerHTML = "";
+  allChildren.forEach(c => {
+    const id   = c.id;
+    const name = c.properties["暱稱"]?.title?.[0]?.text?.content || "未知";
+    const opt  = document.createElement("div");
+    opt.className = "child-opt" + (selectedChildIds.has(id) ? " selected" : "");
+    opt.innerHTML = `
+      <span style="width:6px;height:6px;border-radius:50%;background:${selectedChildIds.has(id) ? "var(--clay-sage)" : "var(--border2)"};flex-shrink:0;"></span>
+      ${name}
+    `;
+    opt.onclick = (e) => {
+      e.stopPropagation();
+      if (selectedChildIds.has(id)) selectedChildIds.delete(id);
+      else selectedChildIds.add(id);
+      renderChips();
+      renderDropdown();
+    };
+    dd.appendChild(opt);
+  });
+}
+
+function renderChips() {
+  const wrap = document.getElementById("selected-chips");
+  const placeholder = document.getElementById("chips-placeholder");
+  // 清除舊 chip（保留 placeholder）
+  Array.from(wrap.children).forEach(el => { if (el.classList.contains("chip")) el.remove(); });
+
+  if (selectedChildIds.size === 0) {
+    placeholder.style.display = "";
+    return;
+  }
+  placeholder.style.display = "none";
+  selectedChildIds.forEach(id => {
+    const c = allChildren.find(x => x.id === id);
+    if (!c) return;
+    const name = c.properties["暱稱"]?.title?.[0]?.text?.content || "?";
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.innerHTML = `${name}<button onclick="removeChild('${id}',event)">✕</button>`;
+    wrap.insertBefore(chip, placeholder);
+  });
+}
+
+function removeChild(id, e) {
+  e.stopPropagation();
+  selectedChildIds.delete(id);
+  renderChips();
+  renderDropdown();
+}
+
+// ── 新增課程紀錄 ─────────────────────────────────────────────
+
+async function submitAddSession() {
+  hideMsg("add-err");
+  hideMsg("add-success");
+
+  const date   = document.getElementById("add-date").value;
+  const type   = document.getElementById("add-type").value;
+  const slot   = document.getElementById("add-slot").value.trim();
+  const deduct = parseFloat(document.getElementById("add-deduct").value) || 1;
+  const note   = document.getElementById("add-note").value.trim();
+
+  if (!date) { showErr("add-err", "請選擇上課日期"); return; }
+  if (selectedChildIds.size === 0) { showErr("add-err", "請至少選擇一位出席孩子"); return; }
+
+  const btn = document.getElementById("add-btn");
+  btn.disabled = true;
+  btn.textContent = "儲存中…";
+
+  try {
+    // 課程 ID：用日期+隨機碼
+    const sessionId = `S-${date}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
+
+    const props = {
+      "課程 ID":   { title: [{ text: { content: sessionId } }] },
+      "日期":      { date: { start: date } },
+      "課程類型":  { select: { name: type } },
+      "扣除堂數":  { number: deduct },
+      "Child":     { relation: Array.from(selectedChildIds).map(id => ({ id })) },
+    };
+
+    if (slot) props["時段"] = { rich_text: [{ text: { content: slot } }] };
+    if (note) props["備註"] = { rich_text: [{ text: { content: note } }] };
+
+    await notionCreate(CONFIG.NOTION_DB_SESSION, props);
+
+    document.getElementById("add-success").textContent = `✅ 課程紀錄已儲存！`;
+    document.getElementById("add-success").style.display = "";
+
+    // 重置表單
+    document.getElementById("add-date").value   = "";
+    document.getElementById("add-slot").value   = "";
+    document.getElementById("add-deduct").value = "1";
+    document.getElementById("add-note").value   = "";
+    selectedChildIds.clear();
+    renderChips();
+    renderDropdown();
+
+    // 重新載入列表
+    allSessions = [];
+    loadSessions();
+
+    setTimeout(() => showView("v-main"), 1800);
+
+  } catch (e) {
+    showErr("add-err", "儲存失敗：" + e.message);
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "儲存課程紀錄";
+  }
+}
+
+// ── 初始化 ───────────────────────────────────────────────────
+
+document.addEventListener("DOMContentLoaded", async () => {
+  // 設定今天為預設日期
+  document.getElementById("add-date").value = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
+
+  // 載入孩子供多選下拉使用
+  try {
+    allChildren = await notionQuery(CONFIG.NOTION_DB_CHILD);
+    renderDropdown();
+  } catch (e) {
+    console.error("載入孩子失敗:", e);
+  }
+
+  // 載入課程列表
+  await loadSessions();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SY 後台 · 方案管理</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --clay-rose:#C4A29E;--clay-sage:#9AAF9F;--clay-sand:#C2B49A;
+  --clay-rose-light:#EFE4E2;--clay-sage-light:#E3EDE5;--clay-sand-light:#EDE6DB;
+  --clay-rose-mid:#D4B8B4;--clay-sage-mid:#B5C9BA;--clay-sand-mid:#D4C8B4;
+  --clay-text-rose:#6B4845;--clay-text-sage:#3A5440;--clay-text-sand:#5C4E38;
+  --bg:#fff;--bg2:#f8f7f5;--bg3:#f2f0ec;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.15);
+  --text:#1a1a1a;--text2:#6b6b6b;--text3:#aaa;
+  --red-light:#fce8e8;--red:#a32d2d;
+  --amber-light:#faeeda;--amber:#854f0b;
+  --green-light:#eaf3de;--green:#3b6d11;
+  --radius-md:8px;--radius-lg:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg3);color:var(--text);}
+.shell{display:flex;min-height:100vh;}
+
+/* Sidebar */
+.sb{width:52px;background:var(--bg);border-right:0.5px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px;flex-shrink:0;}
+.si{width:36px;height:36px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;border:none;background:transparent;color:var(--text2);}
+.si.on{background:var(--clay-sage-light);color:var(--clay-text-sage);}
+.si:hover:not(.on){background:var(--bg2);}
+.sdiv{width:28px;height:0.5px;background:var(--border);margin:4px 0;}
+
+/* Main */
+.main{flex:1;overflow:auto;padding:16px;min-width:0;}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.topbar h2{font-size:15px;font-weight:500;}
+
+/* Card */
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:12px;}
+.cardtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.ct{font-size:12px;font-weight:500;color:var(--text2);}
+
+/* Forms */
+.fl{font-size:11px;color:var(--text2);margin-bottom:3px;display:block;}
+.fi{width:100%;border:0.5px solid var(--border2);border-radius:var(--radius-md);padding:7px 9px;font-size:12px;background:var(--bg);color:var(--text);font-family:inherit;}
+.fi:focus{outline:none;border-color:var(--clay-sage);}
+.fg{margin-bottom:10px;}
+.frow2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.frow3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.fbg{background:var(--bg2);border-radius:var(--radius-md);padding:12px;}
+
+/* Badges */
+.badge{font-size:10px;border-radius:4px;padding:2px 6px;white-space:nowrap;}
+.badge.t{background:var(--clay-sage-light);color:var(--clay-text-sage);}
+.badge.pk{background:var(--clay-rose-light);color:var(--clay-text-rose);}
+.badge.y{background:var(--amber-light);color:var(--amber);}
+.badge.g{background:var(--green-light);color:var(--green);}
+.badge.gray{background:var(--bg2);color:var(--text2);}
+
+/* Buttons */
+.abtn{background:var(--clay-sage);color:white;border:none;border-radius:var(--radius-md);padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit;}
+.abtn:disabled{opacity:.5;cursor:not-allowed;}
+.abtn.g{background:transparent;color:var(--clay-sage);border:0.5px solid var(--clay-sage-mid);}
+.abtn.sm{padding:4px 10px;font-size:11px;}
+.abtn.danger{background:transparent;color:var(--red);border:0.5px solid #f09595;font-size:11px;padding:4px 10px;}
+.ilink{font-size:11px;color:var(--clay-sage);background:transparent;border:none;cursor:pointer;font-family:inherit;padding:0;}
+.refresh-btn{background:transparent;border:0.5px solid var(--clay-sage-mid);border-radius:var(--radius-md);color:var(--clay-sage);font-size:11px;padding:4px 10px;cursor:pointer;font-family:inherit;}
+
+/* Views */
+.view{display:none;}.view.on{display:block;}
+
+/* Loading / Error / Success */
+.loading{text-align:center;padding:20px;font-size:12px;color:var(--text3);}
+.err{background:var(--red-light);color:var(--red);border-radius:var(--radius-md);padding:8px 12px;font-size:12px;margin-bottom:10px;}
+.success{background:var(--green-light);color:var(--green);border-radius:var(--radius-md);padding:8px 12px;font-size:12px;margin-bottom:10px;}
+
+/* Divider */
+.divline{height:0.5px;background:var(--border);margin:10px 0;}
+
+/* Plan card */
+.plan-card{border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:10px;transition:box-shadow .15s;}
+.plan-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.plan-head{padding:12px 14px;display:flex;align-items:center;gap:10px;}
+.plan-head.active{background:var(--clay-sage-light);}
+.plan-head.inactive{background:var(--bg2);}
+.plan-name{font-size:14px;font-weight:500;flex:1;}
+.plan-name.active{color:var(--clay-text-sage);}
+.plan-name.inactive{color:var(--text3);}
+.plan-body{padding:10px 14px;background:var(--bg);display:flex;align-items:center;gap:12px;}
+.plan-stat{text-align:center;flex:1;}
+.plan-stat .ps-val{font-size:18px;font-weight:500;}
+.plan-stat .ps-label{font-size:10px;color:var(--text2);margin-top:2px;}
+.plan-stat .ps-val.highlight{color:var(--clay-text-sage);}
+.plan-divider{width:0.5px;height:28px;background:var(--border);flex-shrink:0;}
+
+/* Toggle switch */
+.toggle-wrap{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.toggle{position:relative;width:32px;height:18px;background:var(--border2);border-radius:9px;cursor:pointer;transition:background .2s;flex-shrink:0;border:none;}
+.toggle.on{background:var(--clay-sage);}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;background:#fff;border-radius:50%;transition:transform .2s;}
+.toggle.on::after{transform:translateX(14px);}
+.toggle-label{font-size:10px;color:var(--text2);}
+
+/* Calc preview */
+.calc-preview{background:var(--clay-sage-light);border-radius:var(--radius-md);padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;gap:10px;}
+.calc-preview .cv{font-size:18px;font-weight:500;color:var(--clay-text-sage);}
+.calc-preview .cl{font-size:11px;color:var(--clay-sage);}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <div class="sb">
+    <div class="si" title="儀表板" onclick="location.href='admin_dashboard_v1.html'">🏠</div>
+    <div class="si" title="孩子管理" onclick="location.href='admin_children_v1.html'">👦</div>
+    <div class="si" title="家長管理" onclick="location.href='admin_parents_v1.html'">👨‍👩‍👧</div>
+    <div class="sdiv"></div>
+    <div class="si" title="一般課程" onclick="location.href='admin_sessions_v1.html'">📋</div>
+    <div class="si" title="主題課程" onclick="location.href='admin_themes_v1.html'">🎨</div>
+    <div class="sdiv"></div>
+    <div class="si" title="近期付款" onclick="location.href='admin_payments_v1.html'">💰</div>
+    <div class="si on" title="方案管理">⚙️</div>
+  </div>
+
+  <div class="main">
+
+    <!-- ══════════════════════════════════
+         VIEW 1：方案列表
+    ══════════════════════════════════ -->
+    <div class="view on" id="v-main">
+      <div class="topbar">
+        <h2>方案管理</h2>
+        <button class="abtn" onclick="showView('v-add')">＋ 新增方案</button>
+      </div>
+
+      <!-- 啟用中方案 -->
+      <div class="card">
+        <div class="cardtop">
+          <span class="ct">啟用中方案</span>
+          <button class="refresh-btn" onclick="loadPlans()">↻ 重新整理</button>
+        </div>
+        <div class="loading" id="plans-loading">載入中…</div>
+        <div id="plans-active-list"></div>
+        <div id="plans-active-empty" style="display:none;font-size:12px;color:var(--text2);padding:8px 0;">
+          目前沒有啟用中的方案
+        </div>
+      </div>
+
+      <!-- 已停用方案 -->
+      <div class="card">
+        <div class="cardtop">
+          <span class="ct">已停用方案</span>
+          <span style="font-size:10px;color:var(--text3);">停用方案不會出現在付款表單的下拉選單</span>
+        </div>
+        <div id="plans-inactive-list"></div>
+        <div id="plans-inactive-empty" style="display:none;font-size:12px;color:var(--text2);padding:8px 0;">
+          沒有停用的方案
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         VIEW 2：新增方案
+    ══════════════════════════════════ -->
+    <div class="view" id="v-add">
+      <div class="topbar">
+        <button class="ilink" style="font-size:13px;" onclick="showView('v-main')">← 返回列表</button>
+      </div>
+      <div class="card">
+        <div class="ct" style="margin-bottom:12px;">新增費用方案</div>
+        <div class="fbg">
+          <div id="add-err" class="err" style="display:none;"></div>
+          <div id="add-success" class="success" style="display:none;"></div>
+
+          <div class="fg">
+            <label class="fl">方案名稱 *</label>
+            <input class="fi" id="add-name" placeholder="如：25 堂方案">
+          </div>
+
+          <div class="frow2" style="margin-bottom:10px;">
+            <div class="fg" style="margin-bottom:0;">
+              <label class="fl">堂數 *</label>
+              <input class="fi" id="add-lessons" type="number" min="1" placeholder="如 25" oninput="calcAddAvg()">
+            </div>
+            <div class="fg" style="margin-bottom:0;">
+              <label class="fl">總價 *</label>
+              <input class="fi" id="add-price" type="number" min="0" placeholder="如 12500" oninput="calcAddAvg()">
+            </div>
+          </div>
+
+          <!-- 自動計算平均 -->
+          <div class="calc-preview" id="add-calc-preview" style="display:none;">
+            <div>
+              <div class="cl">每堂平均</div>
+              <div class="cv" id="add-calc-avg">—</div>
+            </div>
+          </div>
+
+          <div class="fg">
+            <label class="fl">啟用狀態</label>
+            <select class="fi" id="add-status">
+              <option value="true">啟用</option>
+              <option value="false">停用</option>
+            </select>
+          </div>
+
+          <button class="abtn" id="add-btn" onclick="submitAddPlan()">建立方案</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         VIEW 3：編輯方案
+    ══════════════════════════════════ -->
+    <div class="view" id="v-edit">
+      <div class="topbar">
+        <button class="ilink" style="font-size:13px;" onclick="showView('v-main')">← 返回列表</button>
+        <button class="abtn danger sm" onclick="confirmDeletePlan()">刪除此方案</button>
+      </div>
+      <div class="card">
+        <div class="ct" style="margin-bottom:12px;">編輯方案</div>
+        <div class="fbg">
+          <div id="edit-err" class="err" style="display:none;"></div>
+          <div id="edit-success" class="success" style="display:none;"></div>
+
+          <div class="fg">
+            <label class="fl">方案名稱 *</label>
+            <input class="fi" id="edit-name">
+          </div>
+
+          <div class="frow2" style="margin-bottom:10px;">
+            <div class="fg" style="margin-bottom:0;">
+              <label class="fl">堂數 *</label>
+              <input class="fi" id="edit-lessons" type="number" min="1" oninput="calcEditAvg()">
+            </div>
+            <div class="fg" style="margin-bottom:0;">
+              <label class="fl">總價 *</label>
+              <input class="fi" id="edit-price" type="number" min="0" oninput="calcEditAvg()">
+            </div>
+          </div>
+
+          <!-- 自動計算平均 -->
+          <div class="calc-preview" id="edit-calc-preview" style="display:none;">
+            <div>
+              <div class="cl">每堂平均</div>
+              <div class="cv" id="edit-calc-avg">—</div>
+            </div>
+          </div>
+
+          <div class="fg">
+            <label class="fl">啟用狀態</label>
+            <select class="fi" id="edit-status">
+              <option value="true">啟用</option>
+              <option value="false">停用</option>
+            </select>
+          </div>
+
+          <button class="abtn" id="edit-btn" onclick="submitEditPlan()">儲存變更</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+// ============================================================
+// ★ 設定 ── 換教室時只需修改這裡 ★
+// ============================================================
+const CONFIG = {
+  NOTION_API_KEY: "填入你的 Notion API Key",  // ← 必填
+  NOTION_DB_PLAN: "338c38a5-6efe-80e5-aa6e-cd77c4e9c56c",
+};
+// ============================================================
+
+// ── Notion API ────────────────────────────────────────────
+
+const NOTION_HEADERS = () => ({
+  "Authorization": `Bearer ${CONFIG.NOTION_API_KEY}`,
+  "Notion-Version": "2022-06-28",
+  "Content-Type": "application/json",
+});
+
+async function notionQuery(dbId, filter = null, sorts = null) {
+  const body = { page_size: 100 };
+  if (filter) body.filter = filter;
+  if (sorts)  body.sorts  = sorts;
+  const res = await fetch(`https://api.notion.com/v1/databases/${dbId}/query`, {
+    method: "POST", headers: NOTION_HEADERS(), body: JSON.stringify(body),
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+  return (await res.json()).results || [];
+}
+
+async function notionCreate(dbId, properties) {
+  const res = await fetch("https://api.notion.com/v1/pages", {
+    method: "POST", headers: NOTION_HEADERS(),
+    body: JSON.stringify({ parent: { database_id: dbId }, properties }),
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+  return await res.json();
+}
+
+async function notionUpdate(pageId, properties) {
+  const res = await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
+    method: "PATCH", headers: NOTION_HEADERS(),
+    body: JSON.stringify({ properties }),
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+  return await res.json();
+}
+
+async function notionDelete(pageId) {
+  const res = await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
+    method: "PATCH", headers: NOTION_HEADERS(),
+    body: JSON.stringify({ archived: true }),
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+  return await res.json();
+}
+
+// ── 工具函式 ─────────────────────────────────────────────────
+
+function formatMoney(n) {
+  if (n == null) return "—";
+  return "$" + n.toLocaleString("zh-TW");
+}
+
+function showView(id) {
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("on"));
+  document.getElementById(id).classList.add("on");
+}
+
+function showErr(elId, msg) {
+  const el = document.getElementById(elId);
+  el.textContent = "⚠ " + msg;
+  el.style.display = "";
+}
+
+function hideMsg(elId) {
+  document.getElementById(elId).style.display = "none";
+}
+
+// ── 全域狀態 ─────────────────────────────────────────────────
+
+let allPlans     = [];
+let currentPlan  = null;
+
+// ── 載入方案列表 ─────────────────────────────────────────────
+
+async function loadPlans() {
+  const loadingEl    = document.getElementById("plans-loading");
+  const activeList   = document.getElementById("plans-active-list");
+  const inactiveList = document.getElementById("plans-inactive-list");
+  const activeEmpty  = document.getElementById("plans-active-empty");
+  const inactiveEmpty = document.getElementById("plans-inactive-empty");
+
+  activeList.innerHTML   = "";
+  inactiveList.innerHTML = "";
+  activeEmpty.style.display   = "none";
+  inactiveEmpty.style.display = "none";
+  loadingEl.style.display = "";
+
+  try {
+    allPlans = await notionQuery(CONFIG.NOTION_DB_PLAN);
+    loadingEl.style.display = "none";
+
+    const activePlans   = allPlans.filter(p => p.properties["啟用狀態"]?.checkbox !== false);
+    const inactivePlans = allPlans.filter(p => p.properties["啟用狀態"]?.checkbox === false);
+
+    if (activePlans.length === 0)   activeEmpty.style.display = "";
+    if (inactivePlans.length === 0) inactiveEmpty.style.display = "";
+
+    activePlans.forEach(p => renderPlanCard(p, activeList, true));
+    inactivePlans.forEach(p => renderPlanCard(p, inactiveList, false));
+
+  } catch (e) {
+    loadingEl.style.display = "none";
+    console.error("loadPlans 錯誤:", e);
+    activeList.innerHTML = `<div class="err">載入失敗：${e.message}</div>`;
+  }
+}
+
+// ── 渲染方案卡片 ─────────────────────────────────────────────
+
+function renderPlanCard(p, container, isActive) {
+  const name    = p.properties["方案名稱"]?.title?.[0]?.text?.content || "未命名";
+  const lessons = p.properties["堂數"]?.number || 0;
+  const price   = p.properties["總價"]?.number || 0;
+  const avg     = lessons > 0 ? Math.round(price / lessons) : 0;
+
+  const card = document.createElement("div");
+  card.className = "plan-card";
+  card.innerHTML = `
+    <div class="plan-head ${isActive ? 'active' : 'inactive'}">
+      <span style="font-size:16px;">${isActive ? '📦' : '📦'}</span>
+      <div class="plan-name ${isActive ? 'active' : 'inactive'}">${name}</div>
+      <div class="toggle-wrap">
+        <span class="toggle-label">${isActive ? '啟用中' : '已停用'}</span>
+        <button class="toggle ${isActive ? 'on' : ''}" onclick="event.stopPropagation();togglePlanStatus('${p.id}', ${!isActive})" title="${isActive ? '停用此方案' : '啟用此方案'}"></button>
+      </div>
+    </div>
+    <div class="plan-body" style="cursor:pointer;" onclick="showEditPlan('${p.id}')">
+      <div class="plan-stat">
+        <div class="ps-val">${lessons}</div>
+        <div class="ps-label">堂數</div>
+      </div>
+      <div class="plan-divider"></div>
+      <div class="plan-stat">
+        <div class="ps-val">${formatMoney(price)}</div>
+        <div class="ps-label">總價</div>
+      </div>
+      <div class="plan-divider"></div>
+      <div class="plan-stat">
+        <div class="ps-val highlight">${formatMoney(avg)}</div>
+        <div class="ps-label">每堂平均</div>
+      </div>
+      <span style="font-size:12px;color:var(--text3);flex-shrink:0;margin-left:4px;">✎</span>
+    </div>
+  `;
+  container.appendChild(card);
+}
+
+// ── 切換啟用狀態 ─────────────────────────────────────────────
+
+async function togglePlanStatus(planId, newStatus) {
+  try {
+    await notionUpdate(planId, {
+      "啟用狀態": { checkbox: newStatus },
+    });
+    // 更新快取
+    const plan = allPlans.find(p => p.id === planId);
+    if (plan) plan.properties["啟用狀態"] = { checkbox: newStatus };
+    // 重新渲染
+    loadPlans();
+  } catch (e) {
+    alert("更新狀態失敗：" + e.message);
+  }
+}
+
+// ── 編輯方案 ─────────────────────────────────────────────────
+
+function showEditPlan(planId) {
+  const p = allPlans.find(x => x.id === planId);
+  if (!p) return;
+
+  currentPlan = p;
+  hideMsg("edit-err");
+  hideMsg("edit-success");
+
+  const name    = p.properties["方案名稱"]?.title?.[0]?.text?.content || "";
+  const lessons = p.properties["堂數"]?.number || "";
+  const price   = p.properties["總價"]?.number || "";
+  const active  = p.properties["啟用狀態"]?.checkbox !== false;
+
+  document.getElementById("edit-name").value    = name;
+  document.getElementById("edit-lessons").value = lessons;
+  document.getElementById("edit-price").value   = price;
+  document.getElementById("edit-status").value  = active ? "true" : "false";
+
+  calcEditAvg();
+  showView("v-edit");
+}
+
+async function submitEditPlan() {
+  hideMsg("edit-err");
+  hideMsg("edit-success");
+
+  if (!currentPlan) return;
+
+  const name    = document.getElementById("edit-name").value.trim();
+  const lessons = parseInt(document.getElementById("edit-lessons").value) || 0;
+  const price   = parseInt(document.getElementById("edit-price").value) || 0;
+  const active  = document.getElementById("edit-status").value === "true";
+
+  if (!name)    { showErr("edit-err", "請填寫方案名稱"); return; }
+  if (!lessons) { showErr("edit-err", "請填寫堂數"); return; }
+  if (!price)   { showErr("edit-err", "請填寫總價"); return; }
+
+  const btn = document.getElementById("edit-btn");
+  btn.disabled = true;
+  btn.textContent = "儲存中…";
+
+  try {
+    await notionUpdate(currentPlan.id, {
+      "方案名稱":  { title: [{ text: { content: name } }] },
+      "堂數":      { number: lessons },
+      "總價":      { number: price },
+      "啟用狀態":  { checkbox: active },
+    });
+
+    document.getElementById("edit-success").textContent = `✅ 「${name}」已更新！`;
+    document.getElementById("edit-success").style.display = "";
+
+    // 更新快取
+    currentPlan.properties["方案名稱"] = { title: [{ text: { content: name } }] };
+    currentPlan.properties["堂數"]     = { number: lessons };
+    currentPlan.properties["總價"]     = { number: price };
+    currentPlan.properties["啟用狀態"] = { checkbox: active };
+
+    // 重新載入
+    loadPlans();
+    setTimeout(() => showView("v-main"), 1800);
+
+  } catch (e) {
+    showErr("edit-err", "儲存失敗：" + e.message);
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "儲存變更";
+  }
+}
+
+async function confirmDeletePlan() {
+  if (!currentPlan) return;
+  const name = currentPlan.properties["方案名稱"]?.title?.[0]?.text?.content || "未命名";
+  if (!confirm(`確定要刪除「${name}」方案嗎？\n\n已使用此方案的付款紀錄不會受影響。`)) return;
+
+  try {
+    await notionDelete(currentPlan.id);
+    allPlans = allPlans.filter(p => p.id !== currentPlan.id);
+    currentPlan = null;
+    showView("v-main");
+    loadPlans();
+  } catch (e) {
+    alert("刪除失敗：" + e.message);
+  }
+}
+
+// ── 新增方案 ─────────────────────────────────────────────────
+
+async function submitAddPlan() {
+  hideMsg("add-err");
+  hideMsg("add-success");
+
+  const name    = document.getElementById("add-name").value.trim();
+  const lessons = parseInt(document.getElementById("add-lessons").value) || 0;
+  const price   = parseInt(document.getElementById("add-price").value) || 0;
+  const active  = document.getElementById("add-status").value === "true";
+
+  if (!name)    { showErr("add-err", "請填寫方案名稱"); return; }
+  if (!lessons) { showErr("add-err", "請填寫堂數"); return; }
+  if (!price)   { showErr("add-err", "請填寫總價"); return; }
+
+  const btn = document.getElementById("add-btn");
+  btn.disabled = true;
+  btn.textContent = "建立中…";
+
+  try {
+    await notionCreate(CONFIG.NOTION_DB_PLAN, {
+      "方案名稱":  { title: [{ text: { content: name } }] },
+      "堂數":      { number: lessons },
+      "總價":      { number: price },
+      "啟用狀態":  { checkbox: active },
+    });
+
+    document.getElementById("add-success").textContent = `✅ 已建立「${name}」方案！`;
+    document.getElementById("add-success").style.display = "";
+
+    // 重置表單
+    document.getElementById("add-name").value    = "";
+    document.getElementById("add-lessons").value = "";
+    document.getElementById("add-price").value   = "";
+    document.getElementById("add-status").value  = "true";
+    calcAddAvg();
+
+    // 重新載入
+    allPlans = [];
+    loadPlans();
+    setTimeout(() => showView("v-main"), 1800);
+
+  } catch (e) {
+    showErr("add-err", "建立失敗：" + e.message);
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "建立方案";
+  }
+}
+
+// ── 平均計算 ─────────────────────────────────────────────────
+
+function calcAddAvg() {
+  const lessons = parseInt(document.getElementById("add-lessons").value) || 0;
+  const price   = parseInt(document.getElementById("add-price").value) || 0;
+  const preview = document.getElementById("add-calc-preview");
+  const avgEl   = document.getElementById("add-calc-avg");
+  if (lessons > 0 && price > 0) {
+    preview.style.display = "";
+    avgEl.textContent = formatMoney(Math.round(price / lessons)) + " / 堂";
+  } else {
+    preview.style.display = "none";
+  }
+}
+
+function calcEditAvg() {
+  const lessons = parseInt(document.getElementById("edit-lessons").value) || 0;
+  const price   = parseInt(document.getElementById("edit-price").value) || 0;
+  const preview = document.getElementById("edit-calc-preview");
+  const avgEl   = document.getElementById("edit-calc-avg");
+  if (lessons > 0 && price > 0) {
+    preview.style.display = "";
+    avgEl.textContent = formatMoney(Math.round(price / lessons)) + " / 堂";
+  } else {
+    preview.style.display = "none";
+  }
+}
+
+// ── 初始化 ───────────────────────────────────────────────────
+
+document.addEventListener("DOMContentLoaded", loadPlans);
+</script>
+</body>
+</html>

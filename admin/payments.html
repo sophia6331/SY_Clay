@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SY 後台 · 近期付款紀錄</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --clay-rose:#C4A29E;--clay-sage:#9AAF9F;--clay-sand:#C2B49A;
+  --clay-rose-light:#EFE4E2;--clay-sage-light:#E3EDE5;--clay-sand-light:#EDE6DB;
+  --clay-rose-mid:#D4B8B4;--clay-sage-mid:#B5C9BA;--clay-sand-mid:#D4C8B4;
+  --clay-text-rose:#6B4845;--clay-text-sage:#3A5440;--clay-text-sand:#5C4E38;
+  --bg:#fff;--bg2:#f8f7f5;--bg3:#f2f0ec;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.15);
+  --text:#1a1a1a;--text2:#6b6b6b;--text3:#aaa;
+  --red-light:#fce8e8;--red:#a32d2d;
+  --amber-light:#faeeda;--amber:#854f0b;
+  --green-light:#eaf3de;--green:#3b6d11;
+  --radius-md:8px;--radius-lg:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg3);color:var(--text);}
+.shell{display:flex;min-height:100vh;}
+
+/* Sidebar */
+.sb{width:52px;background:var(--bg);border-right:0.5px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px;flex-shrink:0;}
+.si{width:36px;height:36px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;border:none;background:transparent;color:var(--text2);}
+.si.on{background:var(--clay-sage-light);color:var(--clay-text-sage);}
+.si:hover:not(.on){background:var(--bg2);}
+.sdiv{width:28px;height:0.5px;background:var(--border);margin:4px 0;}
+
+/* Main */
+.main{flex:1;overflow:auto;padding:16px;min-width:0;}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.topbar h2{font-size:15px;font-weight:500;}
+
+/* Card */
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:12px;}
+.cardtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.ct{font-size:12px;font-weight:500;color:var(--text2);}
+
+/* Rows */
+.row{display:flex;align-items:flex-start;gap:8px;padding:10px 0;border-bottom:0.5px solid var(--border);cursor:pointer;}
+.row:last-child{border-bottom:none;}
+.rname{font-size:13px;font-weight:500;}
+.rsub{font-size:11px;color:var(--text2);margin-top:2px;}
+
+/* Avatar */
+.av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;}
+.av.c0{background:var(--clay-sage-light);color:var(--clay-text-sage);}
+.av.c1{background:var(--clay-rose-light);color:var(--clay-text-rose);}
+.av.c2{background:var(--clay-sand-light);color:var(--clay-text-sand);}
+.av.c3{background:#FAEEDA;color:#854F0B;}
+.av.c4{background:#EEEDFE;color:#3C3489;}
+
+/* Badges */
+.badge{font-size:10px;border-radius:4px;padding:2px 6px;white-space:nowrap;}
+.badge.t{background:var(--clay-sage-light);color:var(--clay-text-sage);}
+.badge.pk{background:var(--clay-rose-light);color:var(--clay-text-rose);}
+.badge.y{background:var(--amber-light);color:var(--amber);}
+.badge.g{background:var(--green-light);color:var(--green);}
+.badge.gray{background:var(--bg2);color:var(--text2);}
+
+/* Tags */
+.tag{display:inline-block;font-size:10px;border-radius:4px;padding:2px 5px;margin:1px;}
+.tag.t{background:var(--clay-sage-light);color:var(--clay-text-sage);}
+.tag.pk{background:var(--clay-rose-light);color:var(--clay-text-rose);}
+.tag.s{background:var(--clay-sand-light);color:var(--clay-text-sand);}
+
+/* Forms */
+.fl{font-size:11px;color:var(--text2);margin-bottom:3px;display:block;}
+.fi{width:100%;border:0.5px solid var(--border2);border-radius:var(--radius-md);padding:7px 9px;font-size:12px;background:var(--bg);color:var(--text);font-family:inherit;}
+.fi:focus{outline:none;border-color:var(--clay-sand);}
+.fg{margin-bottom:10px;}
+.frow2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.fbg{background:var(--bg2);border-radius:var(--radius-md);padding:12px;}
+
+/* Buttons */
+.abtn{background:var(--clay-sand);color:white;border:none;border-radius:var(--radius-md);padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit;}
+.abtn:disabled{opacity:.5;cursor:not-allowed;}
+.abtn.g{background:transparent;color:var(--clay-sand);border:0.5px solid var(--clay-sand-mid);}
+.abtn.sm{padding:4px 10px;font-size:11px;}
+.abtn.danger{background:transparent;color:var(--red);border:0.5px solid #f09595;font-size:11px;}
+.ilink{font-size:11px;color:var(--clay-sand);background:transparent;border:none;cursor:pointer;font-family:inherit;padding:0;}
+.refresh-btn{background:transparent;border:0.5px solid var(--clay-sand-mid);border-radius:var(--radius-md);color:var(--clay-sand);font-size:11px;padding:4px 10px;cursor:pointer;font-family:inherit;}
+
+/* Views */
+.view{display:none;}.view.on{display:block;}
+
+/* Loading / Error / Success */
+.loading{text-align:center;padding:20px;font-size:12px;color:var(--text3);}
+.err{background:var(--red-light);color:var(--red);border-radius:var(--radius-md);padding:8px 12px;font-size:12px;margin-bottom:10px;}
+.success{background:var(--green-light);color:var(--green);border-radius:var(--radius-md);padding:8px 12px;font-size:12px;margin-bottom:10px;}
+
+/* Divider */
+.divline{height:0.5px;background:var(--border);margin:10px 0;}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px;}
+.stat{background:var(--bg2);border-radius:var(--radius-md);padding:10px 12px;}
+.sl{font-size:11px;color:var(--text2);margin-bottom:3px;}
+.sv{font-size:20px;font-weight:500;color:var(--text);}
+
+/* Date badge */
+.date-badge{min-width:52px;flex-shrink:0;text-align:center;}
+.date-badge .dm{font-size:13px;font-weight:500;}
+.date-badge .dw{font-size:10px;color:var(--text2);}
+
+/* Calc preview */
+.calc-preview{background:var(--clay-sand-light);border-radius:var(--radius-md);padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;gap:10px;}
+.calc-preview .cv{font-size:18px;font-weight:500;color:var(--clay-text-sand);}
+.calc-preview .cl{font-size:11px;color:var(--clay-sand);}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <div class="sb">
+    <div class="si" title="儀表板" onclick="location.href='admin_dashboard_v1.html'">🏠</div>
+    <div class="si" title="孩子管理" onclick="location.href='admin_children_v1.html'">👦</div>
+    <div class="si" title="家長管理" onclick="location.href='admin_parents_v1.html'">👨‍👩‍👧</div>
+    <div class="sdiv"></div>
+    <div class="si" title="一般課程" onclick="location.href='admin_sessions_v1.html'">📋</div>
+    <div class="si" title="主題課程" onclick="location.href='admin_themes_v1.html'">🎨</div>
+    <div class="sdiv"></div>
+    <div class="si on" title="近期付款">💰</div>
+    <div class="si" title="方案管理" onclick="location.href='admin_plans_v1.html'">⚙️</div>
+  </div>
+
+  <div class="main">
+
+    <!-- ══════════════════════════════════
+         VIEW 1：付款列表
+    ══════════════════════════════════ -->
+    <div class="view on" id="v-main">
+      <div class="topbar">
+        <h2>近期付款紀錄</h2>
+        <button class="abtn" onclick="showAddView()">＋ 新增付款</button>
+      </div>
+
+      <!-- 統計 -->
+      <div class="stats">
+        <div class="stat">
+          <div class="sl">本月付款筆數</div>
+          <div class="sv" id="stat-count">—</div>
+        </div>
+        <div class="stat">
+          <div class="sl">本月收入總額</div>
+          <div class="sv" id="stat-total">—</div>
+        </div>
+        <div class="stat">
+          <div class="sl">本月購買堂數</div>
+          <div class="sv" id="stat-lessons">—</div>
+        </div>
+      </div>
+
+      <!-- 付款列表 -->
+      <div class="card">
+        <div class="cardtop">
+          <span class="ct">付款紀錄（按日期排序）</span>
+          <button class="refresh-btn" onclick="loadPayments()">↻ 重新整理</button>
+        </div>
+        <div class="loading" id="payments-loading">載入中…</div>
+        <div id="payments-list"></div>
+        <div id="payments-empty" style="display:none;font-size:12px;color:var(--text2);padding:8px 0;">
+          尚無付款紀錄
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         VIEW 2：新增付款
+    ══════════════════════════════════ -->
+    <div class="view" id="v-add">
+      <div class="topbar">
+        <button class="ilink" style="font-size:13px;" onclick="showView('v-main')">← 返回列表</button>
+      </div>
+      <div class="card">
+        <div class="ct" style="margin-bottom:12px;">新增付款紀錄</div>
+        <div class="fbg">
+          <div id="add-err" class="err" style="display:none;"></div>
+          <div id="add-success" class="success" style="display:none;"></div>
+
+          <!-- 選擇孩子 -->
+          <div class="fg">
+            <label class="fl">孩子 *</label>
+            <select class="fi" id="add-child">
+              <option value="">選擇孩子…</option>
+            </select>
+          </div>
+
+          <!-- 方案名稱 -->
+          <div class="fg">
+            <label class="fl">方案名稱 *</label>
+            <select class="fi" id="add-plan" onchange="onPlanChange()">
+              <option value="">選擇方案…</option>
+            </select>
+          </div>
+
+          <!-- 堂數 & 金額 -->
+          <div class="frow2" style="margin-bottom:10px;">
+            <div class="fg" style="margin-bottom:0;">
+              <label class="fl">購買堂數 *</label>
+              <input class="fi" id="add-lessons" type="number" min="1" oninput="calcAverage()">
+            </div>
+            <div class="fg" style="margin-bottom:0;">
+              <label class="fl">總金額 *</label>
+              <input class="fi" id="add-amount" type="number" min="0" oninput="calcAverage()">
+            </div>
+          </div>
+
+          <!-- 自動計算平均 -->
+          <div class="calc-preview" id="calc-preview" style="display:none;">
+            <div>
+              <div class="cl">每堂平均</div>
+              <div class="cv" id="calc-avg">—</div>
+            </div>
+          </div>
+
+          <!-- 付款日期 & 方式 -->
+          <div class="frow2" style="margin-bottom:10px;">
+            <div class="fg" style="margin-bottom:0;">
+              <label class="fl">付款日期 *</label>
+              <input class="fi" id="add-date" type="date">
+            </div>
+            <div class="fg" style="margin-bottom:0;">
+              <label class="fl">付款方式 *</label>
+              <select class="fi" id="add-method" onchange="toggleMethodFields()">
+                <option value="現金">現金</option>
+                <option value="匯款">匯款</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 現金：收款老師 -->
+          <div class="fg" id="field-teacher">
+            <label class="fl">收款老師</label>
+            <input class="fi" id="add-teacher" placeholder="收款老師姓名">
+          </div>
+
+          <!-- 匯款：末 5 碼 -->
+          <div class="fg" id="field-transfer" style="display:none;">
+            <label class="fl">匯款末 5 碼</label>
+            <input class="fi" id="add-transfer" placeholder="如 12345" maxlength="5">
+          </div>
+
+          <!-- 備註 -->
+          <div class="fg">
+            <label class="fl">備註</label>
+            <input class="fi" id="add-note" placeholder="如：家長備註、折扣說明…">
+          </div>
+
+          <button class="abtn" id="add-btn" onclick="submitAddPayment()">儲存付款紀錄</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         VIEW 3：付款詳細頁
+    ══════════════════════════════════ -->
+    <div class="view" id="v-detail">
+      <div class="topbar">
+        <button class="ilink" style="font-size:13px;" onclick="showView('v-main')">← 返回列表</button>
+        <button class="abtn danger sm" onclick="confirmDelete()">刪除此紀錄</button>
+      </div>
+      <div class="card">
+        <div class="loading" id="detail-loading">載入中…</div>
+        <div id="detail-content" style="display:none;">
+          <!-- 標題 -->
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+            <span style="font-size:22px;">💰</span>
+            <div>
+              <div style="font-size:15px;font-weight:500;" id="detail-title"></div>
+              <div style="font-size:12px;color:var(--text2);" id="detail-meta"></div>
+            </div>
+          </div>
+
+          <div class="divline"></div>
+
+          <!-- 數字統計 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+            <div style="background:var(--bg2);border-radius:var(--radius-md);padding:8px 10px;">
+              <div style="font-size:10px;color:var(--text2);margin-bottom:2px;">購買堂數</div>
+              <div style="font-size:16px;font-weight:500;" id="detail-lessons">—</div>
+            </div>
+            <div style="background:var(--bg2);border-radius:var(--radius-md);padding:8px 10px;">
+              <div style="font-size:10px;color:var(--text2);margin-bottom:2px;">總金額</div>
+              <div style="font-size:16px;font-weight:500;" id="detail-amount">—</div>
+            </div>
+            <div style="background:var(--bg2);border-radius:var(--radius-md);padding:8px 10px;">
+              <div style="font-size:10px;color:var(--text2);margin-bottom:2px;">每堂平均</div>
+              <div style="font-size:16px;font-weight:500;color:var(--clay-text-sand);" id="detail-avg">—</div>
+            </div>
+          </div>
+
+          <!-- 付款資訊 -->
+          <div class="ct" style="margin-bottom:8px;">付款資訊</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;font-size:12px;margin-bottom:12px;">
+            <div>
+              <span style="color:var(--text2);">方案：</span>
+              <span id="detail-plan">—</span>
+            </div>
+            <div>
+              <span style="color:var(--text2);">付款方式：</span>
+              <span id="detail-method">—</span>
+            </div>
+            <div>
+              <span style="color:var(--text2);">收款老師：</span>
+              <span id="detail-teacher">—</span>
+            </div>
+            <div>
+              <span style="color:var(--text2);">匯款末 5 碼：</span>
+              <span id="detail-transfer">—</span>
+            </div>
+          </div>
+
+          <div class="divline"></div>
+          <div class="ct" style="margin-bottom:6px;">備註</div>
+          <div id="detail-note" style="font-size:13px;color:var(--text2);white-space:pre-line;">—</div>
+
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+// ============================================================
+// ★ 設定 ── 換教室時只需修改這裡 ★
+// ============================================================
+const CONFIG = {
+  NOTION_API_KEY:     "填入你的 Notion API Key",  // ← 必填
+  NOTION_DB_PURCHASE: "338c38a5-6efe-803f-8779-d55a13c35548",
+  NOTION_DB_CHILD:    "338c38a5-6efe-802c-9ea8-edd4375e28c5",
+  NOTION_DB_PLAN:     "338c38a5-6efe-80e5-aa6e-cd77c4e9c56c",
+};
+// ============================================================
+
+// ── Notion API ────────────────────────────────────────────
+
+const NOTION_HEADERS = () => ({
+  "Authorization": `Bearer ${CONFIG.NOTION_API_KEY}`,
+  "Notion-Version": "2022-06-28",
+  "Content-Type": "application/json",
+});
+
+async function notionQuery(dbId, filter = null, sorts = null) {
+  const body = { page_size: 100 };
+  if (filter) body.filter = filter;
+  if (sorts)  body.sorts  = sorts;
+  const res = await fetch(`https://api.notion.com/v1/databases/${dbId}/query`, {
+    method: "POST", headers: NOTION_HEADERS(), body: JSON.stringify(body),
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+  return (await res.json()).results || [];
+}
+
+async function notionCreate(dbId, properties) {
+  const res = await fetch("https://api.notion.com/v1/pages", {
+    method: "POST", headers: NOTION_HEADERS(),
+    body: JSON.stringify({ parent: { database_id: dbId }, properties }),
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+  return await res.json();
+}
+
+async function notionDelete(pageId) {
+  const res = await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
+    method: "PATCH", headers: NOTION_HEADERS(),
+    body: JSON.stringify({ archived: true }),
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+  return await res.json();
+}
+
+// ── 工具函式 ─────────────────────────────────────────────────
+
+const AV_COLORS = ["c0","c1","c2","c3","c4"];
+const avColor = (i) => AV_COLORS[i % AV_COLORS.length];
+
+function formatDate(str) {
+  if (!str) return "—";
+  const d = new Date(str + "T00:00:00+08:00");
+  const days = ["日","一","二","三","四","五","六"];
+  return `${d.getMonth()+1}/${d.getDate()}（週${days[d.getDay()]}）`;
+}
+
+function formatMoney(n) {
+  if (n == null) return "—";
+  return "$" + n.toLocaleString("zh-TW");
+}
+
+function showView(id) {
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("on"));
+  document.getElementById(id).classList.add("on");
+}
+
+function showErr(elId, msg) {
+  const el = document.getElementById(elId);
+  el.textContent = "⚠ " + msg;
+  el.style.display = "";
+}
+
+function hideMsg(elId) {
+  document.getElementById(elId).style.display = "none";
+}
+
+function today() {
+  return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
+}
+
+function thisMonthStart() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
+// ── 全域狀態 ─────────────────────────────────────────────────
+
+let allPayments  = [];
+let allChildren  = [];
+let allPlans     = [];
+let currentPayment = null;
+
+// ── 付款列表 ─────────────────────────────────────────────────
+
+async function loadPayments() {
+  const loadingEl = document.getElementById("payments-loading");
+  const listEl    = document.getElementById("payments-list");
+  const emptyEl   = document.getElementById("payments-empty");
+
+  listEl.innerHTML = "";
+  emptyEl.style.display = "none";
+  loadingEl.style.display = "";
+  ["stat-count","stat-total","stat-lessons"].forEach(id => {
+    document.getElementById(id).textContent = "…";
+  });
+
+  try {
+    // 同時載入付款、孩子、方案
+    [allPayments, allChildren, allPlans] = await Promise.all([
+      notionQuery(CONFIG.NOTION_DB_PURCHASE, null, [{ property: "付款日期", direction: "descending" }]),
+      notionQuery(CONFIG.NOTION_DB_CHILD),
+      notionQuery(CONFIG.NOTION_DB_PLAN),
+    ]);
+
+    loadingEl.style.display = "none";
+
+    // 建立 childId → name Map
+    const childMap = {};
+    allChildren.forEach(c => {
+      childMap[c.id] = c.properties["暱稱"]?.title?.[0]?.text?.content || "未知";
+    });
+
+    // 統計本月數據
+    const monthStart = thisMonthStart();
+    let monthCount = 0, monthTotal = 0, monthLessons = 0;
+    allPayments.forEach(p => {
+      const payDate = p.properties["付款日期"]?.date?.start || "";
+      if (payDate >= monthStart) {
+        monthCount++;
+        monthTotal   += p.properties["總金額"]?.number || 0;
+        monthLessons += p.properties["購買堂數"]?.number || 0;
+      }
+    });
+    document.getElementById("stat-count").textContent   = monthCount;
+    document.getElementById("stat-total").textContent    = formatMoney(monthTotal);
+    document.getElementById("stat-lessons").textContent  = monthLessons;
+
+    if (allPayments.length === 0) { emptyEl.style.display = ""; return; }
+
+    // 渲染付款列表
+    allPayments.forEach((p, idx) => {
+      const childRels  = p.properties["Child"]?.relation || [];
+      const childName  = childRels.length > 0 ? (childMap[childRels[0].id] || "?") : "未知";
+      const plan       = p.properties["方案名稱"]?.select?.name || "—";
+      const lessons    = p.properties["購買堂數"]?.number || 0;
+      const amount     = p.properties["總金額"]?.number || 0;
+      const dateStr    = p.properties["付款日期"]?.date?.start || "";
+      const method     = p.properties["付款方式"]?.select?.name || "—";
+
+      const d = dateStr ? new Date(dateStr + "T00:00:00+08:00") : null;
+      const weekdays = ["日","一","二","三","四","五","六"];
+      const methodBadge = method === "現金"
+        ? `<span class="badge g">現金</span>`
+        : `<span class="badge t">匯款</span>`;
+
+      const row = document.createElement("div");
+      row.className = "row";
+      row.onclick = () => showDetail(p.id);
+
+      row.innerHTML = `
+        <div class="date-badge">
+          <div class="dm">${d ? `${d.getMonth()+1}/${d.getDate()}` : "—"}</div>
+          <div class="dw">${d ? `週${weekdays[d.getDay()]}` : ""}</div>
+        </div>
+        <div class="av ${avColor(idx)}">${childName[0] || "?"}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+            <span class="rname">${childName}</span>
+            <span class="badge y">${plan}</span>
+            ${methodBadge}
+          </div>
+          <div class="rsub">${lessons} 堂・${formatMoney(amount)}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:14px;font-weight:500;color:var(--clay-text-sand);">${formatMoney(amount)}</div>
+          <div style="font-size:10px;color:var(--text3);">${lessons} 堂</div>
+        </div>
+      `;
+      listEl.appendChild(row);
+    });
+
+    // 更新新增表單的下拉選單
+    populateChildSelect();
+    populatePlanSelect();
+
+  } catch (e) {
+    loadingEl.style.display = "none";
+    console.error("loadPayments 錯誤:", e);
+    emptyEl.style.display = "";
+    emptyEl.textContent = "載入失敗：" + e.message;
+  }
+}
+
+// ── 付款詳細頁 ───────────────────────────────────────────────
+
+function showDetail(paymentId) {
+  showView("v-detail");
+  document.getElementById("detail-loading").style.display = "";
+  document.getElementById("detail-content").style.display = "none";
+
+  const p = allPayments.find(x => x.id === paymentId);
+  if (!p) { document.getElementById("detail-loading").textContent = "⚠ 找不到資料"; return; }
+
+  currentPayment = p;
+
+  const childRels = p.properties["Child"]?.relation || [];
+  // 建立 childId → name Map
+  const childMap = {};
+  allChildren.forEach(c => { childMap[c.id] = c.properties["暱稱"]?.title?.[0]?.text?.content || "未知"; });
+  const childName = childRels.length > 0 ? (childMap[childRels[0].id] || "?") : "未知";
+
+  const plan     = p.properties["方案名稱"]?.select?.name || "—";
+  const lessons  = p.properties["購買堂數"]?.number || 0;
+  const amount   = p.properties["總金額"]?.number || 0;
+  const avg      = lessons > 0 ? Math.round(amount / lessons) : 0;
+  const dateStr  = p.properties["付款日期"]?.date?.start || "";
+  const method   = p.properties["付款方式"]?.select?.name || "—";
+  const teacher  = p.properties["收款老師"]?.rich_text?.[0]?.text?.content || "—";
+  const transfer = p.properties["匯款末 5 碼"]?.rich_text?.[0]?.text?.content || "—";
+  const note     = p.properties["備註"]?.rich_text?.[0]?.text?.content || "";
+
+  document.getElementById("detail-title").textContent    = `${childName} 的付款紀錄`;
+  document.getElementById("detail-meta").textContent     = `${formatDate(dateStr)} · ${plan}`;
+  document.getElementById("detail-lessons").textContent  = lessons + " 堂";
+  document.getElementById("detail-amount").textContent   = formatMoney(amount);
+  document.getElementById("detail-avg").textContent      = formatMoney(avg);
+  document.getElementById("detail-plan").textContent     = plan;
+  document.getElementById("detail-method").textContent   = method;
+  document.getElementById("detail-teacher").textContent  = method === "現金" ? teacher : "—";
+  document.getElementById("detail-transfer").textContent = method === "匯款" ? transfer : "—";
+  document.getElementById("detail-note").textContent     = note || "（無備註）";
+
+  document.getElementById("detail-loading").style.display  = "none";
+  document.getElementById("detail-content").style.display  = "";
+}
+
+async function confirmDelete() {
+  if (!currentPayment) return;
+  const childRels = currentPayment.properties["Child"]?.relation || [];
+  const childMap = {};
+  allChildren.forEach(c => { childMap[c.id] = c.properties["暱稱"]?.title?.[0]?.text?.content || "未知"; });
+  const childName = childRels.length > 0 ? (childMap[childRels[0].id] || "?") : "未知";
+  const dateStr = currentPayment.properties["付款日期"]?.date?.start || "";
+
+  if (!confirm(`確定要刪除 ${childName} 在 ${formatDate(dateStr)} 的付款紀錄嗎？\n\n此操作無法復原，且會影響堂數計算。`)) return;
+
+  try {
+    await notionDelete(currentPayment.id);
+    allPayments = allPayments.filter(p => p.id !== currentPayment.id);
+    currentPayment = null;
+    showView("v-main");
+    loadPayments();
+  } catch (e) {
+    alert("刪除失敗：" + e.message);
+  }
+}
+
+// ── 新增付款表單邏輯 ─────────────────────────────────────────
+
+function showAddView() {
+  hideMsg("add-err");
+  hideMsg("add-success");
+  // 設定今天為預設日期
+  document.getElementById("add-date").value = today();
+  // 重置表單
+  document.getElementById("add-child").value  = "";
+  document.getElementById("add-plan").value   = "";
+  document.getElementById("add-lessons").value = "";
+  document.getElementById("add-amount").value  = "";
+  document.getElementById("add-teacher").value = "";
+  document.getElementById("add-transfer").value = "";
+  document.getElementById("add-note").value    = "";
+  document.getElementById("add-method").value  = "現金";
+  toggleMethodFields();
+  calcAverage();
+  populateChildSelect();
+  populatePlanSelect();
+  showView("v-add");
+}
+
+function populateChildSelect() {
+  const sel = document.getElementById("add-child");
+  // 保留第一個 option
+  while (sel.options.length > 1) sel.remove(1);
+  allChildren.forEach(c => {
+    const name = c.properties["暱稱"]?.title?.[0]?.text?.content || "未知";
+    const opt = document.createElement("option");
+    opt.value = c.id;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+}
+
+function populatePlanSelect() {
+  const sel = document.getElementById("add-plan");
+  while (sel.options.length > 1) sel.remove(1);
+
+  // 只顯示啟用中的方案
+  allPlans.filter(p => p.properties["啟用狀態"]?.checkbox !== false).forEach(p => {
+    const name    = p.properties["方案名稱"]?.title?.[0]?.text?.content || "未知";
+    const lessons = p.properties["堂數"]?.number || 0;
+    const price   = p.properties["總價"]?.number || 0;
+    const opt = document.createElement("option");
+    opt.value = JSON.stringify({ name, lessons, price });
+    opt.textContent = `${name}（${lessons} 堂 / ${formatMoney(price)}）`;
+    sel.appendChild(opt);
+  });
+
+  // 自訂方案選項
+  const customOpt = document.createElement("option");
+  customOpt.value = "custom";
+  customOpt.textContent = "✎ 自訂（手動輸入）";
+  sel.appendChild(customOpt);
+}
+
+function onPlanChange() {
+  const val = document.getElementById("add-plan").value;
+  if (!val || val === "custom") {
+    // 自訂：清空讓使用者自行輸入
+    document.getElementById("add-lessons").value = "";
+    document.getElementById("add-amount").value  = "";
+    document.getElementById("add-lessons").removeAttribute("readonly");
+    document.getElementById("add-amount").removeAttribute("readonly");
+  } else {
+    try {
+      const plan = JSON.parse(val);
+      document.getElementById("add-lessons").value = plan.lessons;
+      document.getElementById("add-amount").value  = plan.price;
+      // 允許手動修改（不鎖死）
+      document.getElementById("add-lessons").removeAttribute("readonly");
+      document.getElementById("add-amount").removeAttribute("readonly");
+    } catch (e) {}
+  }
+  calcAverage();
+}
+
+function calcAverage() {
+  const lessons = parseInt(document.getElementById("add-lessons").value) || 0;
+  const amount  = parseInt(document.getElementById("add-amount").value) || 0;
+  const preview = document.getElementById("calc-preview");
+  const avgEl   = document.getElementById("calc-avg");
+
+  if (lessons > 0 && amount > 0) {
+    preview.style.display = "";
+    avgEl.textContent = formatMoney(Math.round(amount / lessons)) + " / 堂";
+  } else {
+    preview.style.display = "none";
+  }
+}
+
+function toggleMethodFields() {
+  const method = document.getElementById("add-method").value;
+  document.getElementById("field-teacher").style.display  = method === "現金" ? "" : "none";
+  document.getElementById("field-transfer").style.display = method === "匯款" ? "" : "none";
+}
+
+// ── 送出新增付款 ─────────────────────────────────────────────
+
+async function submitAddPayment() {
+  hideMsg("add-err");
+  hideMsg("add-success");
+
+  const childId  = document.getElementById("add-child").value;
+  const planVal  = document.getElementById("add-plan").value;
+  const lessons  = parseInt(document.getElementById("add-lessons").value) || 0;
+  const amount   = parseInt(document.getElementById("add-amount").value) || 0;
+  const date     = document.getElementById("add-date").value;
+  const method   = document.getElementById("add-method").value;
+  const teacher  = document.getElementById("add-teacher").value.trim();
+  const transfer = document.getElementById("add-transfer").value.trim();
+  const note     = document.getElementById("add-note").value.trim();
+
+  if (!childId) { showErr("add-err", "請選擇孩子"); return; }
+  if (!planVal) { showErr("add-err", "請選擇方案"); return; }
+  if (!lessons) { showErr("add-err", "請填寫購買堂數"); return; }
+  if (!amount)  { showErr("add-err", "請填寫總金額"); return; }
+  if (!date)    { showErr("add-err", "請選擇付款日期"); return; }
+
+  // 取得方案名稱
+  let planName = "自訂";
+  if (planVal !== "custom" && planVal) {
+    try { planName = JSON.parse(planVal).name; } catch (e) {}
+  }
+
+  const btn = document.getElementById("add-btn");
+  btn.disabled = true;
+  btn.textContent = "儲存中…";
+
+  try {
+    const purchaseId = `P-${date}-${Math.random().toString(36).slice(2,6).toUpperCase()}`;
+
+    const props = {
+      "購買 ID":   { title: [{ text: { content: purchaseId } }] },
+      "Child":     { relation: [{ id: childId }] },
+      "方案名稱":  { select: { name: planName } },
+      "購買堂數":  { number: lessons },
+      "總金額":    { number: amount },
+      "付款日期":  { date: { start: date } },
+      "付款方式":  { select: { name: method } },
+    };
+
+    if (method === "現金" && teacher) {
+      props["收款老師"] = { rich_text: [{ text: { content: teacher } }] };
+    }
+    if (method === "匯款" && transfer) {
+      props["匯款末 5 碼"] = { rich_text: [{ text: { content: transfer } }] };
+    }
+    if (note) {
+      props["備註"] = { rich_text: [{ text: { content: note } }] };
+    }
+
+    await notionCreate(CONFIG.NOTION_DB_PURCHASE, props);
+
+    // 找到孩子名稱
+    const child = allChildren.find(c => c.id === childId);
+    const childName = child?.properties["暱稱"]?.title?.[0]?.text?.content || "";
+
+    document.getElementById("add-success").textContent = `✅ 已新增 ${childName} 的付款紀錄（${formatMoney(amount)}，${lessons} 堂）`;
+    document.getElementById("add-success").style.display = "";
+
+    // 重新載入列表
+    allPayments = [];
+    loadPayments();
+
+    setTimeout(() => showView("v-main"), 1800);
+
+  } catch (e) {
+    showErr("add-err", "儲存失敗：" + e.message);
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "儲存付款紀錄";
+  }
+}
+
+// ── 初始化 ───────────────────────────────────────────────────
+
+document.addEventListener("DOMContentLoaded", async () => {
+  document.getElementById("add-date").value = today();
+  await loadPayments();
+});
+</script>
+</body>
+</html>
