@@ -23,12 +23,21 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg3);color:var(--text);}
 .shell{display:flex;min-height:100vh;}
 
-/* ── Sidebar ────────────────────────────────── */
-.sb{width:52px;background:var(--bg);border-right:0.5px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px;flex-shrink:0;}
-.si{width:36px;height:36px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;border:none;background:transparent;color:var(--text2);transition:background .15s;}
-.si.on{background:var(--clay-sage-light);color:var(--clay-text-sage);}
+/* ── Sidebar ──────────────────────────────────── */
+.sb{width:150px;background:var(--bg);border-right:0.5px solid var(--border);display:flex;flex-direction:column;padding:10px 0;gap:2px;flex-shrink:0;}
+.si{height:36px;border-radius:var(--radius-md);display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;border:none;background:transparent;color:var(--text2);padding:0 12px;white-space:nowrap;transition:background .15s;}
+.si .si-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
+.si .si-label{overflow:hidden;text-overflow:ellipsis;}
+.si.on{background:var(--clay-sage-light);color:var(--clay-text-sage);font-weight:500;}
 .si:hover:not(.on){background:var(--bg2);}
-.sdiv{width:28px;height:0.5px;background:var(--border);margin:4px 0;}
+.sdiv{height:0.5px;background:var(--border);margin:4px 12px;}
+@media(max-width:600px){
+  .sb{width:52px;align-items:center;padding:10px 0;}
+  .si{width:36px;padding:0;justify-content:center;gap:0;font-size:15px;}
+  .si .si-label{display:none;}
+  .si .si-icon{font-size:15px;width:auto;}
+  .sdiv{width:28px;margin:4px 0;}
+}
 
 /* ── Main layout ─────────────────────────────── */
 .main{flex:1;overflow:auto;padding:16px;min-width:0;}
@@ -95,15 +104,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 
   <!-- ── Sidebar（之後各頁面連結用）──────────── -->
   <div class="sb">
-    <div class="si on" title="儀表板">🏠</div>
-    <div class="si" title="孩子管理" onclick="location.href='children.html'">👦</div>
-    <div class="si" title="家長管理" onclick="location.href='parents.html'">👨‍👩‍👧</div>
+    <div class="si on"><span class="si-icon">🏠</span><span class="si-label">儀表板</span></div>
+    <div class="si" onclick="location.href='children.html'"><span class="si-icon">👦</span><span class="si-label">孩子管理</span></div>
+    <div class="si" onclick="location.href='parents.html'"><span class="si-icon">👨‍👩‍👧</span><span class="si-label">家長管理</span></div>
     <div class="sdiv"></div>
-    <div class="si" title="一般課程" onclick="location.href='sessions.html'">📋</div>
-    <div class="si" title="主題課程" onclick="location.href='themes.html'">🎨</div>
+    <div class="si" onclick="location.href='sessions.html'"><span class="si-icon">📋</span><span class="si-label">一般課程</span></div>
+    <div class="si" onclick="location.href='themes.html'"><span class="si-icon">🎨</span><span class="si-label">主題課程</span></div>
     <div class="sdiv"></div>
-    <div class="si" title="近期付款" onclick="location.href='payments.html'">💰</div>
-    <div class="si" title="方案管理" onclick="location.href='plans.html'">⚙️</div>
+    <div class="si" onclick="location.href='payments.html'"><span class="si-icon">💰</span><span class="si-label">近期付款</span></div>
+    <div class="si" onclick="location.href='plans.html'"><span class="si-icon">⚙️</span><span class="si-label">方案管理</span></div>
   </div>
 
   <!-- ── Main content ───────────────────────── -->
@@ -118,34 +127,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
     <div class="stats">
       <div class="stat">
         <div class="sl">本週課程</div>
-        <!-- 本週一到今天的 Session 筆數 -->
         <div class="sv" id="stat-week">—</div>
       </div>
       <div class="stat">
         <div class="sl">本月新購</div>
-        <!-- 本月 Purchase 筆數 -->
         <div class="sv" id="stat-purchase">—</div>
-      </div>
-      <div class="stat">
-        <div class="sl">需注意</div>
-        <!-- 剩餘堂數 ≤ 1 的孩子數量 -->
-        <div class="sv w" id="stat-alert">—</div>
-      </div>
-    </div>
-
-    <!-- 堂數不足警示 -->
-    <div class="card" id="alert-card">
-      <div class="cardtop">
-        <span class="ct">⚠ 堂數不足（剩餘 ≤ 1 堂）</span>
-        <span style="font-size:10px;color:var(--text3);">✕ 關閉後 30 天不再提醒</span>
-      </div>
-      <!-- loading 狀態 -->
-      <div class="loading" id="alert-loading">載入中…</div>
-      <!-- 警示列表，由 JS 動態填入 -->
-      <div id="alert-list"></div>
-      <!-- 全部關閉或沒有警示時顯示 -->
-      <div id="alert-empty" style="display:none;font-size:12px;color:var(--text2);padding:4px 0;">
-        目前沒有需要注意的孩子 🎉
       </div>
     </div>
 
@@ -293,57 +279,31 @@ function avColor(index) { return AV_COLORS[index % AV_COLORS.length]; }
 /** 取孩子名稱第一個字當頭像文字 */
 function avText(name) { return name ? name[0] : "?"; }
 
-// ── 低堂數警示：localStorage dismiss 邏輯 ───────────────────
 
-function isDismissed(childId) {
-  const ts = localStorage.getItem("dismiss_" + childId);
-  if (!ts) return false;
-  const elapsed = (Date.now() - parseInt(ts)) / (1000 * 60 * 60 * 24);
-  if (elapsed >= CONFIG.DISMISS_DAYS) {
-    localStorage.removeItem("dismiss_" + childId); // 超過30天自動解除
-    return false;
-  }
-  return true;
-}
-
-function dismissAlert(childId, rowEl) {
-  localStorage.setItem("dismiss_" + childId, Date.now().toString());
-  rowEl.style.transition = "opacity .25s";
-  rowEl.style.opacity = "0";
-  setTimeout(() => {
-    rowEl.remove();
-    // 若全部移除就顯示空狀態
-    const list = document.getElementById("alert-list");
-    if (list && list.children.length === 0) {
-      document.getElementById("alert-empty").style.display = "";
-      document.getElementById("stat-alert").textContent = "0";
-    }
-  }, 250);
-}
 
 // ── 儀表板主要載入函式 ───────────────────────────────────────
 
 async function loadDashboard() {
   // 重置 loading 狀態
-  ["alert-loading","next3-loading","theme-loading"].forEach(id => {
+  ["next3-loading","theme-loading"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = "";
   });
-  ["alert-list","next3-list","theme-list"].forEach(id => {
+  ["next3-list","theme-list"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = "";
   });
-  ["alert-empty","next3-empty","theme-empty"].forEach(id => {
+  ["next3-empty","theme-empty"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = "none";
   });
-  ["stat-week","stat-purchase","stat-alert"].forEach(id => {
-    document.getElementById(id).textContent = "…";
+  ["stat-week","stat-purchase"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = "…";
   });
 
-  // 三個區塊平行載入，互不影響
+  // 兩個區塊平行載入，互不影響
   await Promise.all([
-    loadAlerts(),
     loadStats(),
     loadNext3Days(),
     loadThemeEvents(),
@@ -377,88 +337,7 @@ async function loadStats() {
   }
 }
 
-// ── 載入低堂數警示 ───────────────────────────────────────────
 
-async function loadAlerts() {
-  const loadingEl = document.getElementById("alert-loading");
-  const listEl    = document.getElementById("alert-list");
-  const emptyEl   = document.getElementById("alert-empty");
-  const statEl    = document.getElementById("stat-alert");
-
-  try {
-    // 取得所有孩子
-    const children = await notionQuery(CONFIG.NOTION_DB_CHILD);
-    const alerts = [];
-
-    // 逐一計算每個孩子的剩餘堂數
-    // 注意：這裡對每個孩子做兩次 API 呼叫，孩子多的話會慢
-    // 可以考慮未來改成批次查詢優化
-    await Promise.all(children.map(async (child, idx) => {
-      const name = child.properties["暱稱"]?.title?.[0]?.text?.content || "未知";
-      const { remaining } = await calcLessons(child.id);
-
-      if (remaining <= CONFIG.LOW_LESSON_THRESHOLD) {
-        // 取得家長名稱（從 Parent relation）
-        const parentIds = child.properties["Parent"]?.relation || [];
-        let parentName = "";
-        if (parentIds.length > 0) {
-          const parents = await notionQuery(CONFIG.NOTION_DB_PARENT, {
-            // 用 page_id 查詢（Notion filter 不支援直接用 ID，改用 title equals）
-            // 這裡改用取得所有家長後比對
-          });
-          const matched = parents.find(p => p.id === parentIds[0].id);
-          if (matched) {
-            parentName = matched.properties["LINE 顯示名稱"]?.rich_text?.[0]?.text?.content || "";
-          }
-        }
-
-        alerts.push({ id: child.id, name, remaining, parentName, idx });
-      }
-    }));
-
-    loadingEl.style.display = "none";
-    statEl.textContent = alerts.length;
-
-    if (alerts.length === 0) {
-      emptyEl.style.display = "";
-      return;
-    }
-
-    // 渲染每一筆警示
-    alerts.forEach(a => {
-      if (isDismissed(a.id)) return; // 已被關閉的跳過
-
-      const row = document.createElement("div");
-      row.className = "row";
-
-      const badgeClass = a.remaining <= 0 ? "r" : "y";
-      const badgeText  = a.remaining <= 0 ? "剩 0 堂" : `剩 ${a.remaining} 堂`;
-
-      row.innerHTML = `
-        <div class="av ${avColor(a.idx)}">${avText(a.name)}</div>
-        <div style="flex:1;">
-          <div class="rname">${a.name}</div>
-          ${a.parentName ? `<div class="rsub">家長：${a.parentName}</div>` : ""}
-        </div>
-        <span class="badge ${badgeClass}" style="margin-right:6px;">${badgeText}</span>
-        <button
-          style="width:20px;height:20px;border-radius:50%;background:var(--bg2);border:0.5px solid var(--border2);font-size:11px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;"
-          title="關閉提醒 ${CONFIG.DISMISS_DAYS} 天"
-          onclick="dismissAlert('${a.id}', this.closest('.row'))">✕</button>
-      `;
-      listEl.appendChild(row);
-    });
-
-    // 若全部都被 dismiss 了
-    if (listEl.children.length === 0) {
-      emptyEl.style.display = "";
-    }
-
-  } catch (e) {
-    console.error("loadAlerts 錯誤:", e);
-    loadingEl.textContent = "⚠ 載入失敗：" + e.message;
-  }
-}
 
 // ── 載入未來 3 天課程報名 ────────────────────────────────────
 

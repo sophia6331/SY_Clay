@@ -23,11 +23,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .shell{display:flex;min-height:100vh;}
 
 /* Sidebar */
-.sb{width:52px;background:var(--bg);border-right:0.5px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px;flex-shrink:0;}
-.si{width:36px;height:36px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;border:none;background:transparent;color:var(--text2);}
-.si.on{background:var(--clay-sage-light);color:var(--clay-text-sage);}
+.sb{width:150px;background:var(--bg);border-right:0.5px solid var(--border);display:flex;flex-direction:column;padding:10px 0;gap:2px;flex-shrink:0;}
+.si{height:36px;border-radius:var(--radius-md);display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;border:none;background:transparent;color:var(--text2);padding:0 12px;white-space:nowrap;}
+.si .si-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
+.si .si-label{overflow:hidden;text-overflow:ellipsis;}
+.si.on{background:var(--clay-sage-light);color:var(--clay-text-sage);font-weight:500;}
 .si:hover:not(.on){background:var(--bg2);}
-.sdiv{width:28px;height:0.5px;background:var(--border);margin:4px 0;}
+.sdiv{height:0.5px;background:var(--border);margin:4px 12px;}
+@media(max-width:600px){
+  .sb{width:52px;align-items:center;padding:10px 0;}
+  .si{width:36px;padding:0;justify-content:center;gap:0;font-size:15px;}
+  .si .si-label{display:none;}
+  .si .si-icon{font-size:15px;width:auto;}
+  .sdiv{width:28px;margin:4px 0;}
+}
 
 /* Main */
 .main{flex:1;overflow:auto;padding:16px;min-width:0;}
@@ -104,15 +113,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 
   <!-- Sidebar -->
   <div class="sb">
-    <div class="si" title="儀表板" onclick="location.href='dashboard.html'">🏠</div>
-    <div class="si on" title="孩子管理">👦</div>
-    <div class="si" title="家長管理" onclick="location.href='parents.html'">👨‍👩‍👧</div>
+    <div class="si" onclick="location.href='dashboard.html'"><span class="si-icon">🏠</span><span class="si-label">儀表板</span></div>
+    <div class="si on"><span class="si-icon">👦</span><span class="si-label">孩子管理</span></div>
+    <div class="si" onclick="location.href='parents.html'"><span class="si-icon">👨‍👩‍👧</span><span class="si-label">家長管理</span></div>
     <div class="sdiv"></div>
-    <div class="si" title="一般課程" onclick="location.href='sessions.html'">📋</div>
-    <div class="si" title="主題課程" onclick="location.href='themes.html'">🎨</div>
+    <div class="si" onclick="location.href='sessions.html'"><span class="si-icon">📋</span><span class="si-label">一般課程</span></div>
+    <div class="si" onclick="location.href='themes.html'"><span class="si-icon">🎨</span><span class="si-label">主題課程</span></div>
     <div class="sdiv"></div>
-    <div class="si" title="近期付款" onclick="location.href='payments.html'">💰</div>
-    <div class="si" title="方案管理" onclick="location.href='plans.html'">⚙️</div>
+    <div class="si" onclick="location.href='payments.html'"><span class="si-icon">💰</span><span class="si-label">近期付款</span></div>
+    <div class="si" onclick="location.href='plans.html'"><span class="si-icon">⚙️</span><span class="si-label">方案管理</span></div>
   </div>
 
   <div class="main">
