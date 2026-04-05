@@ -231,9 +231,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
             <div class="child-dropdown" id="child-dropdown"></div>
           </div>
 
-          <div class="fg">
-            <label class="fl">備註</label>
-            <input class="fi" id="add-note" placeholder="如：下雨天人數較少">
+          <div class="frow2" style="margin-bottom:10px;">
+            <div class="fg" style="margin-bottom:0;">
+              <label class="fl">備註</label>
+              <input class="fi" id="add-note" placeholder="如：下雨天人數較少">
+            </div>
+            <div class="fg" style="margin-bottom:0;">
+              <label class="fl">圖片連結</label>
+              <input class="fi" id="add-photo" placeholder="網址 (如 Google Drive)">
+            </div>
           </div>
 
           <button class="abtn" id="add-btn" onclick="submitAddSession()">儲存課程紀錄</button>
@@ -389,6 +395,18 @@ async function notionDelete(pageId) {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify({ source: "admin", action: "delete", pageId }),
+  });
+  if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || "未知錯誤");
+  return data.result;
+}
+
+async function notionUpdate(pageId, properties) {
+  const res = await fetch(CONFIG.GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ source: "admin", action: "update", pageId, properties }),
   });
   if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
   const data = await res.json();
@@ -731,6 +749,7 @@ async function submitAddSession() {
   const slot   = document.getElementById("add-slot").value.trim();
   const deduct = parseFloat(document.getElementById("add-deduct").value) || 1;
   const note   = document.getElementById("add-note").value.trim();
+  const photoUrl = document.getElementById("add-photo").value.trim();
 
   if (!date) { showErr("add-err", "請選擇上課日期"); return; }
   if (selectedChildIds.size === 0) { showErr("add-err", "請至少選擇一位出席孩子"); return; }
@@ -753,6 +772,10 @@ async function submitAddSession() {
 
     if (slot) props["時段"] = { rich_text: [{ text: { content: slot } }] };
     if (note) props["備註"] = { rich_text: [{ text: { content: note } }] };
+    if (photoUrl) {
+      // 假設 Photo 欄位為 Files & media，如果原本是 Relation 請在 Notion 改成 Files & media (檔案與媒體) 才能儲存連結
+      props["Photo"] = { files: [{ name: "photo", type: "external", external: { url: photoUrl } }] };
+    }
 
     await notionCreate(CONFIG.NOTION_DB_SESSION, props);
 
@@ -764,6 +787,7 @@ async function submitAddSession() {
     document.getElementById("add-slot").value   = "";
     document.getElementById("add-deduct").value = "1";
     document.getElementById("add-note").value   = "";
+    document.getElementById("add-photo").value  = "";
     selectedChildIds.clear();
     renderChips();
     renderDropdown();
@@ -783,6 +807,63 @@ async function submitAddSession() {
   }
 }
 
+// ── 週課表編輯功能 ──────────────────────────────────────────
+
+function editSchedule(sch) {
+  currentSession = null;
+  showView("v-schedule-edit");
+  hideMsg("sch-err");
+  hideMsg("sch-success");
+  
+  const day = sch.properties["星期"]?.title?.[0]?.text?.content || "";
+  document.getElementById("sch-edit-title").textContent = `編輯課表：${day}`;
+  
+  document.getElementById("sch-page-id").value = sch.id;
+  document.getElementById("sch-start").value = sch.properties["開始時間"]?.rich_text?.[0]?.text?.content || "";
+  document.getElementById("sch-end").value = sch.properties["結束時間"]?.rich_text?.[0]?.text?.content || "";
+  document.getElementById("sch-cap").value = sch.properties["人數上限"]?.number || 6;
+  document.getElementById("sch-closed").checked = sch.properties["當日關閉"]?.checkbox || false;
+  document.getElementById("sch-paused").checked = sch.properties["臨時暫停"]?.checkbox || false;
+  document.getElementById("sch-pause-note").value = sch.properties["暫停說明"]?.rich_text?.[0]?.text?.content || "";
+}
+
+async function submitSchedule() {
+  hideMsg("sch-err");
+  hideMsg("sch-success");
+  
+  const btn = document.getElementById("sch-save-btn");
+  btn.disabled = true;
+  btn.textContent = "儲存中…";
+  
+  try {
+    const pageId = document.getElementById("sch-page-id").value;
+    const props = {
+      "開始時間": { rich_text: [{ text: { content: document.getElementById("sch-start").value } }] },
+      "結束時間": { rich_text: [{ text: { content: document.getElementById("sch-end").value } }] },
+      "人數上限": { number: parseInt(document.getElementById("sch-cap").value) || 0 },
+      "當日關閉": { checkbox: document.getElementById("sch-closed").checked },
+      "臨時暫停": { checkbox: document.getElementById("sch-paused").checked },
+      "暫停說明": { rich_text: [{ text: { content: document.getElementById("sch-pause-note").value } }] }
+    };
+    
+    // 呼叫更新 API
+    await notionUpdate(pageId, props);
+    
+    document.getElementById("sch-success").textContent = "✅ 儲存成功！";
+    document.getElementById("sch-success").style.display = "";
+    
+    setTimeout(() => {
+      showView("v-main");
+      loadSchedule();
+    }, 1000);
+  } catch (e) {
+    showErr("sch-err", "儲存失敗：" + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "儲存修改";
+  }
+}
+
 // ── 初始化 ───────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -797,8 +878,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.error("載入孩子失敗:", e);
   }
 
-  // 載入課程列表
-  await loadSessions();
+  // 載入課程列表與週課表
+  loadSessions();
+  loadSchedule();
 });
 </script>
 </body>
