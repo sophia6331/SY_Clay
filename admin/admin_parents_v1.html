@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SY 後台 · 家長管理</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --clay-rose:#C4A29E;--clay-sage:#9AAF9F;--clay-sand:#C2B49A;
+  --clay-rose-light:#EFE4E2;--clay-sage-light:#E3EDE5;--clay-sand-light:#EDE6DB;
+  --clay-rose-mid:#D4B8B4;--clay-sage-mid:#B5C9BA;--clay-sand-mid:#D4C8B4;
+  --clay-text-rose:#6B4845;--clay-text-sage:#3A5440;--clay-text-sand:#5C4E38;
+  --bg:#fff;--bg2:#f8f7f5;--bg3:#f2f0ec;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.15);
+  --text:#1a1a1a;--text2:#6b6b6b;--text3:#aaa;
+  --red-light:#fce8e8;--red:#a32d2d;
+  --amber-light:#faeeda;--amber:#854f0b;
+  --green-light:#eaf3de;--green:#3b6d11;
+  --radius-md:8px;--radius-lg:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg3);color:var(--text);}
+.shell{display:flex;min-height:100vh;}
+
+/* Sidebar */
+.sb{width:52px;background:var(--bg);border-right:0.5px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px;flex-shrink:0;}
+.si{width:36px;height:36px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;border:none;background:transparent;color:var(--text2);}
+.si.on{background:var(--clay-sage-light);color:var(--clay-text-sage);}
+.si:hover:not(.on){background:var(--bg2);}
+.sdiv{width:28px;height:0.5px;background:var(--border);margin:4px 0;}
+
+/* Main */
+.main{flex:1;overflow:auto;padding:16px;min-width:0;}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.topbar h2{font-size:15px;font-weight:500;}
+
+/* Card */
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:12px;}
+.cardtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.ct{font-size:12px;font-weight:500;color:var(--text2);}
+
+/* Rows */
+.row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:0.5px solid var(--border);cursor:pointer;}
+.row:last-child{border-bottom:none;}
+.row:hover{background:var(--bg2);margin:0 -14px;padding:9px 14px;border-radius:var(--radius-md);}
+.rname{font-size:13px;font-weight:500;}
+.rsub{font-size:11px;color:var(--text2);}
+
+/* Avatar */
+.av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;flex-shrink:0;}
+.av.c0{background:var(--clay-sage-light);color:var(--clay-text-sage);}
+.av.c1{background:var(--clay-rose-light);color:var(--clay-text-rose);}
+.av.c2{background:var(--clay-sand-light);color:var(--clay-text-sand);}
+.av.c3{background:#FAEEDA;color:#854F0B;}
+.av.c4{background:#EEEDFE;color:#3C3489;}
+
+/* Badges */
+.badge{font-size:10px;border-radius:4px;padding:2px 6px;white-space:nowrap;}
+.badge.g{background:var(--green-light);color:var(--green);}
+.badge.t{background:var(--clay-sage-light);color:var(--clay-text-sage);}
+.badge.r{background:var(--red-light);color:var(--red);}
+
+/* Tags */
+.tag{display:inline-block;font-size:10px;border-radius:4px;padding:2px 5px;margin-right:2px;margin-bottom:2px;}
+.tag.t{background:var(--clay-sage-light);color:var(--clay-text-sage);}
+.tag.pk{background:var(--clay-rose-light);color:var(--clay-text-rose);}
+.tag.s{background:var(--clay-sand-light);color:var(--clay-text-sand);}
+
+/* Forms */
+.fl{font-size:11px;color:var(--text2);margin-bottom:3px;display:block;}
+.fi{width:100%;border:0.5px solid var(--border2);border-radius:var(--radius-md);padding:7px 9px;font-size:12px;background:var(--bg);color:var(--text);font-family:inherit;}
+.fi:focus{outline:none;border-color:var(--clay-sage);}
+.fg{margin-bottom:8px;}
+.fbg{background:var(--bg2);border-radius:var(--radius-md);padding:10px 12px;}
+
+/* Buttons */
+.abtn{background:var(--clay-sage);color:white;border:none;border-radius:var(--radius-md);padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit;}
+.abtn:disabled{opacity:.5;cursor:not-allowed;}
+.abtn.g{background:transparent;color:var(--clay-sage);border:0.5px solid var(--clay-sage-mid);}
+.abtn.sm{padding:4px 10px;font-size:11px;}
+.ilink{font-size:11px;color:var(--clay-sage);background:transparent;border:none;cursor:pointer;font-family:inherit;padding:0;}
+
+/* Views */
+.view{display:none;}.view.on{display:block;}
+
+/* Loading / Error / Success */
+.loading{text-align:center;padding:20px;font-size:12px;color:var(--text3);}
+.err{background:var(--red-light);color:var(--red);border-radius:var(--radius-md);padding:8px 12px;font-size:12px;margin-bottom:10px;}
+.success{background:var(--green-light);color:var(--green);border-radius:var(--radius-md);padding:8px 12px;font-size:12px;margin-bottom:10px;}
+
+/* Divider */
+.divline{height:0.5px;background:var(--border);margin:10px 0;}
+
+/* Refresh */
+.refresh-btn{background:transparent;border:0.5px solid var(--clay-sage-mid);border-radius:var(--radius-md);color:var(--clay-sage);font-size:11px;padding:4px 10px;cursor:pointer;font-family:inherit;}
+.refresh-btn:hover{background:var(--clay-sage-light);}
+
+/* LINE UID mono */
+.uid-mono{font-size:10px;color:var(--text3);font-family:monospace;word-break:break-all;}
+
+/* Child chip in detail */
+.child-chip{display:inline-flex;align-items:center;gap:4px;background:var(--clay-sage-light);border-radius:6px;padding:4px 8px;font-size:12px;color:var(--clay-text-sage);margin:2px;}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <div class="sb">
+    <div class="si" title="儀表板" onclick="location.href='admin_dashboard_v1.html'">🏠</div>
+    <div class="si" title="孩子管理" onclick="location.href='admin_children_v1.html'">👦</div>
+    <div class="si on" title="家長管理">👨‍👩‍👧</div>
+    <div class="sdiv"></div>
+    <div class="si" title="一般課程">📋</div>
+    <div class="si" title="主題課程">🎨</div>
+    <div class="sdiv"></div>
+    <div class="si" title="近期付款">💰</div>
+    <div class="si" title="方案管理">⚙️</div>
+  </div>
+
+  <div class="main">
+
+    <!-- ══════════════════════════════════
+         VIEW 1：家長列表
+    ══════════════════════════════════ -->
+    <div class="view on" id="v-list">
+      <div class="topbar">
+        <h2>家長管理</h2>
+        <button class="refresh-btn" onclick="loadParentList()">↻ 重新整理</button>
+      </div>
+
+      <!-- 統計 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-md);padding:10px 12px;">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:3px;">已綁定家長</div>
+          <div style="font-size:20px;font-weight:500;" id="stat-bound">—</div>
+        </div>
+        <div style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-md);padding:10px 12px;">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:3px;">尚未綁定</div>
+          <div style="font-size:20px;font-weight:500;color:var(--amber);" id="stat-unbound">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="loading" id="list-loading">載入中…</div>
+        <div id="list-err" class="err" style="display:none;"></div>
+        <!-- 家長列表，由 JS 動態填入 -->
+        <div id="parent-list"></div>
+        <div id="list-empty" style="display:none;font-size:12px;color:var(--text2);padding:8px 0;">
+          尚無家長資料
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         VIEW 2：家長詳細頁
+    ══════════════════════════════════ -->
+    <div class="view" id="v-detail">
+      <div class="topbar">
+        <button class="ilink" style="font-size:13px;" onclick="showView('v-list')">← 返回列表</button>
+        <button class="abtn g sm" onclick="showEditFromDetail()">編輯備註</button>
+      </div>
+
+      <div class="card" id="detail-card">
+        <div class="loading" id="detail-loading">載入中…</div>
+        <div id="detail-content" style="display:none;">
+
+          <!-- 頭像 + 名稱 + UID -->
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+            <div class="av c0" style="width:44px;height:44px;font-size:16px;" id="detail-av"></div>
+            <div style="flex:1;">
+              <div style="font-size:16px;font-weight:500;" id="detail-name"></div>
+              <div class="uid-mono" id="detail-uid"></div>
+            </div>
+            <span class="badge g" id="detail-status-badge">已綁定</span>
+          </div>
+
+          <div class="divline"></div>
+
+          <!-- 綁定資訊 -->
+          <div style="display:flex;gap:12px;margin-bottom:12px;">
+            <div style="flex:1;">
+              <div style="font-size:11px;color:var(--text2);margin-bottom:2px;">綁定時間</div>
+              <div style="font-size:12px;" id="detail-bind-date">—</div>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:11px;color:var(--text2);margin-bottom:2px;">名下孩子數</div>
+              <div style="font-size:12px;" id="detail-child-count">—</div>
+            </div>
+          </div>
+
+          <!-- 名下孩子 -->
+          <div class="ct" style="margin-bottom:8px;">名下孩子</div>
+          <div id="detail-children" style="margin-bottom:12px;min-height:24px;">
+            <div class="loading" style="padding:4px 0;text-align:left;">載入中…</div>
+          </div>
+
+          <div class="divline"></div>
+
+          <!-- 備註 -->
+          <div class="ct" style="margin-bottom:6px;">備註</div>
+          <div id="detail-note" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-line;min-height:20px;">—</div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         VIEW 3：編輯備註
+    ══════════════════════════════════ -->
+    <div class="view" id="v-edit">
+      <div class="topbar">
+        <button class="ilink" style="font-size:13px;" onclick="showView('v-detail')">← 返回詳細頁</button>
+      </div>
+      <div class="card">
+        <div class="ct" style="margin-bottom:12px;">編輯家長備註</div>
+        <div class="fbg">
+          <div id="edit-err" class="err" style="display:none;"></div>
+          <div id="edit-success" class="success" style="display:none;"></div>
+
+          <input type="hidden" id="edit-page-id">
+
+          <!-- 家長資訊（唯讀提示） -->
+          <div style="font-size:12px;color:var(--text2);margin-bottom:10px;" id="edit-parent-label"></div>
+
+          <div class="fg">
+            <label class="fl">備註（老師內部使用，家長不可見）</label>
+            <textarea class="fi" id="edit-note" rows="4" style="resize:vertical;" placeholder="如：5月出國請假、對黏土過敏等…"></textarea>
+          </div>
+
+          <button class="abtn" id="edit-btn" onclick="submitEditNote()">儲存備註</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+// ============================================================
+// ★ 設定 ── 換教室時只需修改這裡 ★
+// ============================================================
+const CONFIG = {
+  NOTION_API_KEY:   "填入你的 Notion API Key",  // ← 必填
+  NOTION_DB_PARENT: "338c38a5-6efe-8061-b4f3-fca2a7cb4394",
+  NOTION_DB_CHILD:  "338c38a5-6efe-802c-9ea8-edd4375e28c5",
+};
+// ============================================================
+
+// ── Notion API ────────────────────────────────────────────
+
+const NOTION_HEADERS = () => ({
+  "Authorization": `Bearer ${CONFIG.NOTION_API_KEY}`,
+  "Notion-Version": "2022-06-28",
+  "Content-Type": "application/json",
+});
+
+async function notionQuery(dbId, filter = null) {
+  const body = { page_size: 100 };
+  if (filter) body.filter = filter;
+  const res = await fetch(`https://api.notion.com/v1/databases/${dbId}/query`, {
+    method: "POST",
+    headers: NOTION_HEADERS(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+  return (await res.json()).results || [];
+}
+
+async function notionUpdate(pageId, properties) {
+  const res = await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
+    method: "PATCH",
+    headers: NOTION_HEADERS(),
+    body: JSON.stringify({ properties }),
+  });
+  if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+  return await res.json();
+}
+
+// ── 工具函式 ─────────────────────────────────────────────────
+
+const AV_COLORS = ["c0","c1","c2","c3","c4"];
+const avColor = (i) => AV_COLORS[i % AV_COLORS.length];
+
+function formatDate(str) {
+  if (!str) return "—";
+  const d = new Date(str + "T00:00:00+08:00");
+  return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+}
+
+function showView(id) {
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("on"));
+  document.getElementById(id).classList.add("on");
+}
+
+function showErr(elId, msg) {
+  const el = document.getElementById(elId);
+  el.textContent = "⚠ " + msg;
+  el.style.display = "";
+}
+
+function hideMsg(elId) {
+  document.getElementById(elId).style.display = "none";
+}
+
+// ── 全域狀態 ─────────────────────────────────────────────────
+
+let allParents = [];    // 快取家長列表
+let allChildren = [];   // 快取孩子列表（用於顯示名下孩子）
+let currentParent = null; // 目前正在檢視的家長
+
+// ── 載入家長列表 ─────────────────────────────────────────────
+
+async function loadParentList() {
+  const loadingEl = document.getElementById("list-loading");
+  const listEl    = document.getElementById("parent-list");
+  const errEl     = document.getElementById("list-err");
+  const emptyEl   = document.getElementById("list-empty");
+
+  listEl.innerHTML = "";
+  errEl.style.display = "none";
+  emptyEl.style.display = "none";
+  loadingEl.style.display = "";
+
+  try {
+    // 同時載入家長與孩子（孩子用來顯示名下孩子名稱）
+    [allParents, allChildren] = await Promise.all([
+      notionQuery(CONFIG.NOTION_DB_PARENT),
+      notionQuery(CONFIG.NOTION_DB_CHILD),
+    ]);
+
+    loadingEl.style.display = "none";
+
+    // 統計
+    const bound   = allParents.filter(p => p.properties["LINE UID"]?.title?.[0]?.text?.content).length;
+    const unbound = allParents.length - bound;
+    document.getElementById("stat-bound").textContent   = bound;
+    document.getElementById("stat-unbound").textContent = unbound || "0";
+
+    if (allParents.length === 0) {
+      emptyEl.style.display = "";
+      return;
+    }
+
+    // 建立孩子 Map：parentPageId → [childName, ...]
+    const parentChildMap = {};
+    allChildren.forEach(c => {
+      const parentRels = c.properties["Parent"]?.relation || [];
+      parentRels.forEach(rel => {
+        if (!parentChildMap[rel.id]) parentChildMap[rel.id] = [];
+        parentChildMap[rel.id].push(
+          c.properties["暱稱"]?.title?.[0]?.text?.content || "未知"
+        );
+      });
+    });
+
+    // 渲染每位家長
+    allParents.forEach((p, idx) => {
+      const uid      = p.properties["LINE UID"]?.title?.[0]?.text?.content || "";
+      const dispName = p.properties["LINE 顯示名稱"]?.rich_text?.[0]?.text?.content || "";
+      const note     = p.properties["備註"]?.rich_text?.[0]?.text?.content || "";
+      const bindDate = p.properties["綁定時間"]?.date?.start || "";
+      const children = parentChildMap[p.id] || [];
+      const isBound  = !!uid;
+
+      const label = dispName || uid || "未知家長";
+      const initial = label[0] || "?";
+
+      const row = document.createElement("div");
+      row.className = "row";
+      row.onclick = () => showDetail(p.id, idx);
+
+      // 名下孩子 tags
+      const childTagsHtml = children.length > 0
+        ? children.map((n, i) => `<span class="tag ${["t","pk","s","t","pk"][i%5]}">${n}</span>`).join("")
+        : `<span style="font-size:11px;color:var(--text3);">尚未關聯孩子</span>`;
+
+      row.innerHTML = `
+        <div class="av ${avColor(idx)}">${initial}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="rname">${label}</span>
+            ${isBound
+              ? `<span class="badge g" style="font-size:9px;">已綁定</span>`
+              : `<span class="badge r" style="font-size:9px;">未綁定</span>`}
+          </div>
+          <div style="margin-top:3px;">${childTagsHtml}</div>
+          ${note ? `<div class="rsub" style="margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">📝 ${note}</div>` : ""}
+        </div>
+        <div style="font-size:11px;color:var(--text3);flex-shrink:0;text-align:right;">
+          ${bindDate ? formatDate(bindDate) : "—"}
+        </div>
+      `;
+      listEl.appendChild(row);
+    });
+
+  } catch (e) {
+    loadingEl.style.display = "none";
+    showErr("list-err", "載入失敗：" + e.message);
+    console.error(e);
+  }
+}
+
+// ── 顯示家長詳細頁 ───────────────────────────────────────────
+
+async function showDetail(parentId, colorIdx) {
+  showView("v-detail");
+
+  document.getElementById("detail-loading").style.display = "";
+  document.getElementById("detail-content").style.display = "none";
+
+  const p = allParents.find(x => x.id === parentId);
+  if (!p) {
+    document.getElementById("detail-loading").textContent = "⚠ 找不到資料";
+    return;
+  }
+
+  currentParent = {
+    id:       p.id,
+    uid:      p.properties["LINE UID"]?.title?.[0]?.text?.content || "",
+    name:     p.properties["LINE 顯示名稱"]?.rich_text?.[0]?.text?.content || "",
+    note:     p.properties["備註"]?.rich_text?.[0]?.text?.content || "",
+    bindDate: p.properties["綁定時間"]?.date?.start || "",
+    colorIdx: colorIdx || 0,
+  };
+
+  const label   = currentParent.name || currentParent.uid || "未知家長";
+  const isBound = !!currentParent.uid;
+
+  // 填入基本資訊
+  document.getElementById("detail-av").textContent        = label[0] || "?";
+  document.getElementById("detail-av").className          = `av ${avColor(currentParent.colorIdx)}`;
+  document.getElementById("detail-name").textContent      = label;
+  document.getElementById("detail-uid").textContent       = currentParent.uid || "（尚未綁定 LINE）";
+  document.getElementById("detail-bind-date").textContent = currentParent.bindDate ? formatDate(currentParent.bindDate) : "—";
+  document.getElementById("detail-note").textContent      = currentParent.note || "（無備註）";
+  document.getElementById("detail-status-badge").textContent  = isBound ? "已綁定" : "未綁定";
+  document.getElementById("detail-status-badge").className    = `badge ${isBound ? "g" : "r"}`;
+
+  // 名下孩子
+  const children = allChildren.filter(c => {
+    const rels = c.properties["Parent"]?.relation || [];
+    return rels.some(r => r.id === parentId);
+  });
+
+  document.getElementById("detail-child-count").textContent = `${children.length} 位`;
+
+  const childrenEl = document.getElementById("detail-children");
+  childrenEl.innerHTML = "";
+  if (children.length === 0) {
+    childrenEl.innerHTML = `<span style="font-size:12px;color:var(--text3);">尚未關聯任何孩子</span>`;
+  } else {
+    children.forEach((c, i) => {
+      const name     = c.properties["暱稱"]?.title?.[0]?.text?.content || "未知";
+      const birthday = c.properties["生日"]?.date?.start || "";
+      const chip = document.createElement("span");
+      chip.className = "child-chip";
+      chip.innerHTML = `
+        <span style="width:20px;height:20px;border-radius:50%;background:var(--clay-rose-light);color:var(--clay-text-rose);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;">${name[0]||"?"}</span>
+        <span>${name}</span>
+        ${birthday ? `<span style="font-size:10px;color:var(--clay-sage);">${formatDate(birthday)}</span>` : ""}
+      `;
+      childrenEl.appendChild(chip);
+    });
+  }
+
+  document.getElementById("detail-loading").style.display  = "none";
+  document.getElementById("detail-content").style.display  = "";
+}
+
+// ── 編輯備註 ─────────────────────────────────────────────────
+
+function showEditFromDetail() {
+  if (!currentParent) return;
+  showView("v-edit");
+  hideMsg("edit-err");
+  hideMsg("edit-success");
+
+  document.getElementById("edit-page-id").value     = currentParent.id;
+  document.getElementById("edit-note").value         = currentParent.note;
+  const label = currentParent.name || currentParent.uid || "未知家長";
+  document.getElementById("edit-parent-label").textContent = `正在編輯：${label}`;
+}
+
+async function submitEditNote() {
+  hideMsg("edit-err");
+  hideMsg("edit-success");
+
+  const pageId = document.getElementById("edit-page-id").value;
+  const note   = document.getElementById("edit-note").value.trim();
+
+  const btn = document.getElementById("edit-btn");
+  btn.disabled = true;
+  btn.textContent = "儲存中…";
+
+  try {
+    await notionUpdate(pageId, {
+      "備註": { rich_text: [{ text: { content: note } }] },
+    });
+
+    // 更新快取
+    if (currentParent) currentParent.note = note;
+    const cached = allParents.find(p => p.id === pageId);
+    if (cached) {
+      cached.properties["備註"] = { rich_text: [{ text: { content: note } }] };
+    }
+
+    document.getElementById("edit-success").textContent = "✅ 備註已儲存！";
+    document.getElementById("edit-success").style.display = "";
+
+    // 1.5 秒後返回詳細頁並更新備註顯示
+    setTimeout(() => {
+      document.getElementById("detail-note").textContent = note || "（無備註）";
+      showView("v-detail");
+    }, 1500);
+
+  } catch (e) {
+    showErr("edit-err", "儲存失敗：" + e.message);
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "儲存備註";
+  }
+}
+
+// ── 初始化 ───────────────────────────────────────────────────
+
+document.addEventListener("DOMContentLoaded", loadParentList);
+</script>
+</body>
+</html>

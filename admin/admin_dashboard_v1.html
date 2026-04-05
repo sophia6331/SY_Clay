@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SY 兒童手作教室 · 後台</title>
+<style>
+/* ── 基礎 Reset ─────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --clay-rose:#C4A29E;--clay-sage:#9AAF9F;--clay-sand:#C2B49A;
+  --clay-rose-light:#EFE4E2;--clay-sage-light:#E3EDE5;--clay-sand-light:#EDE6DB;
+  --clay-rose-mid:#D4B8B4;--clay-sage-mid:#B5C9BA;--clay-sand-mid:#D4C8B4;
+  --clay-text-rose:#6B4845;--clay-text-sage:#3A5440;--clay-text-sand:#5C4E38;
+  --bg:#fff;--bg2:#f8f7f5;--bg3:#f2f0ec;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.15);
+  --text:#1a1a1a;--text2:#6b6b6b;--text3:#aaa;
+  --red-light:#fce8e8;--red:#a32d2d;
+  --amber-light:#faeeda;--amber:#854f0b;
+  --green-light:#eaf3de;--green:#3b6d11;
+  --radius-md:8px;--radius-lg:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg3);color:var(--text);}
+.shell{display:flex;min-height:100vh;}
+
+/* ── Sidebar ────────────────────────────────── */
+.sb{width:52px;background:var(--bg);border-right:0.5px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px;flex-shrink:0;}
+.si{width:36px;height:36px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;border:none;background:transparent;color:var(--text2);transition:background .15s;}
+.si.on{background:var(--clay-sage-light);color:var(--clay-text-sage);}
+.si:hover:not(.on){background:var(--bg2);}
+.sdiv{width:28px;height:0.5px;background:var(--border);margin:4px 0;}
+
+/* ── Main layout ─────────────────────────────── */
+.main{flex:1;overflow:auto;padding:16px;min-width:0;}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.topbar h2{font-size:15px;font-weight:500;}
+
+/* ── Cards ───────────────────────────────────── */
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:12px;}
+.cardtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.ct{font-size:12px;font-weight:500;color:var(--text2);}
+
+/* ── Stats grid ──────────────────────────────── */
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px;}
+.stat{background:var(--bg2);border-radius:var(--radius-md);padding:10px 12px;}
+.sl{font-size:11px;color:var(--text2);margin-bottom:3px;}
+.sv{font-size:20px;font-weight:500;color:var(--text);}
+.sv.w{color:var(--amber);}.sv.r{color:var(--red);}
+
+/* ── Rows ────────────────────────────────────── */
+.row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:0.5px solid var(--border);}
+.row:last-child{border-bottom:none;}
+.rname{font-size:13px;font-weight:500;}
+.rsub{font-size:11px;color:var(--text2);}
+.ml{margin-left:auto;}
+
+/* ── Avatar ──────────────────────────────────── */
+.av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;}
+/* 顏色輪替（最多10色）*/
+.av.c0{background:var(--clay-sage-light);color:var(--clay-text-sage);}
+.av.c1{background:var(--clay-rose-light);color:var(--clay-text-rose);}
+.av.c2{background:var(--clay-sand-light);color:var(--clay-text-sand);}
+.av.c3{background:#FAEEDA;color:#854F0B;}
+.av.c4{background:#EEEDFE;color:#3C3489;}
+
+/* ── Badges ──────────────────────────────────── */
+.badge{font-size:10px;border-radius:4px;padding:2px 6px;white-space:nowrap;}
+.badge.r{background:var(--red-light);color:var(--red);}
+.badge.y{background:var(--amber-light);color:var(--amber);}
+.badge.g{background:var(--green-light);color:var(--green);}
+.badge.t{background:var(--clay-sage-light);color:var(--clay-text-sage);}
+
+/* ── Tags ────────────────────────────────────── */
+.tag{display:inline-block;font-size:10px;border-radius:4px;padding:2px 5px;margin-right:2px;}
+.tag.t{background:var(--clay-sage-light);color:var(--clay-text-sage);}
+.tag.pk{background:var(--clay-rose-light);color:var(--clay-text-rose);}
+.tag.s{background:var(--clay-sand-light);color:var(--clay-text-sand);}
+
+/* ── Progress bar ────────────────────────────── */
+.pbar-wrap{display:flex;align-items:center;gap:8px;}
+.pbar{flex:1;height:4px;background:var(--bg2);border-radius:2px;overflow:hidden;}
+.pfill{height:100%;background:var(--clay-sage);border-radius:2px;}
+
+/* ── Loading / Error states ──────────────────── */
+.loading{text-align:center;padding:20px;font-size:12px;color:var(--text3);}
+.err-msg{background:var(--red-light);color:var(--red);border-radius:var(--radius-md);padding:8px 12px;font-size:12px;margin-bottom:10px;}
+
+/* ── Refresh button ──────────────────────────── */
+.refresh-btn{background:transparent;border:0.5px solid var(--clay-sage-mid);border-radius:var(--radius-md);color:var(--clay-sage);font-size:11px;padding:4px 10px;cursor:pointer;font-family:inherit;}
+.refresh-btn:hover{background:var(--clay-sage-light);}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ── Sidebar（之後各頁面連結用）──────────── -->
+  <div class="sb">
+    <div class="si on" title="儀表板">🏠</div>
+    <div class="si" title="孩子管理">👦</div>
+    <div class="si" title="家長管理">👨‍👩‍👧</div>
+    <div class="sdiv"></div>
+    <div class="si" title="一般課程">📋</div>
+    <div class="si" title="主題課程">🎨</div>
+    <div class="sdiv"></div>
+    <div class="si" title="近期付款">💰</div>
+    <div class="si" title="方案管理">⚙️</div>
+  </div>
+
+  <!-- ── Main content ───────────────────────── -->
+  <div class="main">
+    <div class="topbar">
+      <h2>儀表板</h2>
+      <!-- 手動重新整理按鈕：點擊後重新從 Notion 拉取所有資料 -->
+      <button class="refresh-btn" onclick="loadDashboard()">↻ 重新整理</button>
+    </div>
+
+    <!-- 統計數字 -->
+    <div class="stats">
+      <div class="stat">
+        <div class="sl">本週課程</div>
+        <!-- 本週一到今天的 Session 筆數 -->
+        <div class="sv" id="stat-week">—</div>
+      </div>
+      <div class="stat">
+        <div class="sl">本月新購</div>
+        <!-- 本月 Purchase 筆數 -->
+        <div class="sv" id="stat-purchase">—</div>
+      </div>
+      <div class="stat">
+        <div class="sl">需注意</div>
+        <!-- 剩餘堂數 ≤ 1 的孩子數量 -->
+        <div class="sv w" id="stat-alert">—</div>
+      </div>
+    </div>
+
+    <!-- 堂數不足警示 -->
+    <div class="card" id="alert-card">
+      <div class="cardtop">
+        <span class="ct">⚠ 堂數不足（剩餘 ≤ 1 堂）</span>
+        <span style="font-size:10px;color:var(--text3);">✕ 關閉後 30 天不再提醒</span>
+      </div>
+      <!-- loading 狀態 -->
+      <div class="loading" id="alert-loading">載入中…</div>
+      <!-- 警示列表，由 JS 動態填入 -->
+      <div id="alert-list"></div>
+      <!-- 全部關閉或沒有警示時顯示 -->
+      <div id="alert-empty" style="display:none;font-size:12px;color:var(--text2);padding:4px 0;">
+        目前沒有需要注意的孩子 🎉
+      </div>
+    </div>
+
+    <!-- 未來 3 天報名狀況 -->
+    <div class="card">
+      <div class="cardtop">
+        <span class="ct">未來 3 天報名狀況</span>
+        <span style="font-size:11px;color:var(--text3);" id="next3-date-range"></span>
+      </div>
+      <div class="loading" id="next3-loading">載入中…</div>
+      <div id="next3-list"></div>
+      <div id="next3-empty" style="display:none;font-size:12px;color:var(--text2);padding:4px 0;">
+        未來 3 天尚無課程報名
+      </div>
+    </div>
+
+    <!-- 主題課程進度 -->
+    <div class="card">
+      <div class="cardtop">
+        <span class="ct">主題課程（開放中）</span>
+      </div>
+      <div class="loading" id="theme-loading">載入中…</div>
+      <div id="theme-list"></div>
+      <div id="theme-empty" style="display:none;font-size:12px;color:var(--text2);padding:4px 0;">
+        目前沒有開放中的主題課程
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+// ============================================================
+// ★ 教室設定 ── 換教室時只需修改這裡 ★
+// ============================================================
+const CONFIG = {
+  NOTION_API_KEY:     "填入你的 Notion API Key",  // ← 必填
+  NOTION_DB_CHILD:    "338c38a5-6efe-802c-9ea8-edd4375e28c5",
+  NOTION_DB_PURCHASE: "338c38a5-6efe-803f-8779-d55a13c35548",
+  NOTION_DB_SESSION:  "338c38a5-6efe-80a0-9801-d9517c8431ef",
+  NOTION_DB_THEME:    "338c38a5-6efe-80eb-9cda-e51fcb0f34c3",
+  NOTION_DB_PARENT:   "338c38a5-6efe-8061-b4f3-fca2a7cb4394",
+
+  LOW_LESSON_THRESHOLD: 1,      // 幾堂以下顯示警示
+  DISMISS_DAYS: 30,             // 關閉警示後幾天不再顯示
+};
+// ============================================================
+
+// ── Notion API 工具函式 ────────────────────────────────────
+
+/**
+ * 查詢 Notion Database（支援 filter 與分頁，最多回傳 200 筆）
+ * @param {string} dbId   Database ID
+ * @param {object} filter Notion filter 物件，null 表示不篩選
+ * @returns {Promise<Array>} Notion page 陣列
+ */
+async function notionQuery(dbId, filter = null) {
+  const url = `https://api.notion.com/v1/databases/${dbId}/query`;
+  const body = {};
+  if (filter) body.filter = filter;
+  body.page_size = 100; // 每次最多 100 筆
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      // Notion API 金鑰：從 notion.so 整合設定取得
+      "Authorization": `Bearer ${CONFIG.NOTION_API_KEY}`,
+      // Notion API 版本，固定用這個
+      "Notion-Version": "2022-06-28",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    console.error("notionQuery 錯誤:", err.message);
+    throw new Error(err.message || "Notion API 錯誤");
+  }
+
+  const data = await res.json();
+  return data.results || [];
+}
+
+// ── 計算剩餘堂數 ────────────────────────────────────────────
+
+/**
+ * 計算某個孩子的剩餘堂數
+ * 公式：所有 Purchase 購買堂數加總 - 所有 Session 扣除堂數加總
+ * @param {string} childId  Child 頁面 ID
+ * @returns {Promise<{purchased, used, remaining}>}
+ */
+async function calcLessons(childId) {
+  // 查詢此孩子的所有購買記錄
+  // Purchase 表中 "Child" 欄位（relation）包含此孩子 ID
+  const purchases = await notionQuery(CONFIG.NOTION_DB_PURCHASE, {
+    property: "Child",
+    relation: { contains: childId },
+  });
+
+  const purchased = purchases.reduce((sum, p) => {
+    return sum + (p.properties["購買堂數"]?.number || 0);
+  }, 0);
+
+  // 查詢此孩子出席的所有課程
+  // Session 表中 "出席孩子" 欄位（relation）包含此孩子 ID
+  const sessions = await notionQuery(CONFIG.NOTION_DB_SESSION, {
+    property: "出席孩子",
+    relation: { contains: childId },
+  });
+
+  const used = sessions.reduce((sum, s) => {
+    // 若課程沒有填扣除堂數，預設為 1
+    return sum + (s.properties["扣除堂數"]?.number ?? CONFIG.LOW_LESSON_THRESHOLD ?? 1);
+  }, 0);
+
+  return { purchased, used, remaining: purchased - used };
+}
+
+// ── 日期工具 ─────────────────────────────────────────────────
+
+/** 取得今天的 YYYY-MM-DD 字串（台灣時區）*/
+function today() {
+  return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
+}
+
+/** 取得 N 天後的 YYYY-MM-DD 字串 */
+function daysLater(n) {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
+}
+
+/** 取得本週一的 YYYY-MM-DD 字串 */
+function thisMonday() {
+  const d = new Date();
+  const day = d.getDay(); // 0=日, 1=一...
+  const diff = day === 0 ? -6 : 1 - day; // 讓週日往前推到上週一
+  d.setDate(d.getDate() + diff);
+  return d.toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
+}
+
+/** 取得本月第一天的 YYYY-MM-DD 字串 */
+function thisMonthStart() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
+/** 將 YYYY-MM-DD 轉成中文日期（含星期） */
+function formatDate(str) {
+  if (!str) return "";
+  const d = new Date(str + "T00:00:00+08:00");
+  const weekDays = ["日","一","二","三","四","五","六"];
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  const w = weekDays[d.getDay()];
+  return `${m}/${day}（週${w}）`;
+}
+
+// ── 頭像顏色輪替 ─────────────────────────────────────────────
+const AV_COLORS = ["c0","c1","c2","c3","c4"];
+function avColor(index) { return AV_COLORS[index % AV_COLORS.length]; }
+
+/** 取孩子名稱第一個字當頭像文字 */
+function avText(name) { return name ? name[0] : "?"; }
+
+// ── 低堂數警示：localStorage dismiss 邏輯 ───────────────────
+
+function isDismissed(childId) {
+  const ts = localStorage.getItem("dismiss_" + childId);
+  if (!ts) return false;
+  const elapsed = (Date.now() - parseInt(ts)) / (1000 * 60 * 60 * 24);
+  if (elapsed >= CONFIG.DISMISS_DAYS) {
+    localStorage.removeItem("dismiss_" + childId); // 超過30天自動解除
+    return false;
+  }
+  return true;
+}
+
+function dismissAlert(childId, rowEl) {
+  localStorage.setItem("dismiss_" + childId, Date.now().toString());
+  rowEl.style.transition = "opacity .25s";
+  rowEl.style.opacity = "0";
+  setTimeout(() => {
+    rowEl.remove();
+    // 若全部移除就顯示空狀態
+    const list = document.getElementById("alert-list");
+    if (list && list.children.length === 0) {
+      document.getElementById("alert-empty").style.display = "";
+      document.getElementById("stat-alert").textContent = "0";
+    }
+  }, 250);
+}
+
+// ── 儀表板主要載入函式 ───────────────────────────────────────
+
+async function loadDashboard() {
+  // 重置 loading 狀態
+  ["alert-loading","next3-loading","theme-loading"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "";
+  });
+  ["alert-list","next3-list","theme-list"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = "";
+  });
+  ["alert-empty","next3-empty","theme-empty"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  });
+  ["stat-week","stat-purchase","stat-alert"].forEach(id => {
+    document.getElementById(id).textContent = "…";
+  });
+
+  // 三個區塊平行載入，互不影響
+  await Promise.all([
+    loadAlerts(),
+    loadStats(),
+    loadNext3Days(),
+    loadThemeEvents(),
+  ]);
+}
+
+// ── 載入統計數字 ─────────────────────────────────────────────
+
+async function loadStats() {
+  try {
+    // 本週課程數：日期 >= 本週一 且 <= 今天
+    const weeklySessions = await notionQuery(CONFIG.NOTION_DB_SESSION, {
+      and: [
+        { property: "日期", date: { on_or_after: thisMonday() } },
+        { property: "日期", date: { on_or_before: today() } },
+      ]
+    });
+    document.getElementById("stat-week").textContent = weeklySessions.length;
+
+    // 本月新購數：付款日期 >= 本月第一天
+    const monthPurchases = await notionQuery(CONFIG.NOTION_DB_PURCHASE, {
+      property: "付款日期",
+      date: { on_or_after: thisMonthStart() },
+    });
+    document.getElementById("stat-purchase").textContent = monthPurchases.length;
+
+  } catch (e) {
+    console.error("loadStats 錯誤:", e);
+    document.getElementById("stat-week").textContent = "!";
+    document.getElementById("stat-purchase").textContent = "!";
+  }
+}
+
+// ── 載入低堂數警示 ───────────────────────────────────────────
+
+async function loadAlerts() {
+  const loadingEl = document.getElementById("alert-loading");
+  const listEl    = document.getElementById("alert-list");
+  const emptyEl   = document.getElementById("alert-empty");
+  const statEl    = document.getElementById("stat-alert");
+
+  try {
+    // 取得所有孩子
+    const children = await notionQuery(CONFIG.NOTION_DB_CHILD);
+    const alerts = [];
+
+    // 逐一計算每個孩子的剩餘堂數
+    // 注意：這裡對每個孩子做兩次 API 呼叫，孩子多的話會慢
+    // 可以考慮未來改成批次查詢優化
+    await Promise.all(children.map(async (child, idx) => {
+      const name = child.properties["暱稱"]?.title?.[0]?.text?.content || "未知";
+      const { remaining } = await calcLessons(child.id);
+
+      if (remaining <= CONFIG.LOW_LESSON_THRESHOLD) {
+        // 取得家長名稱（從 Parent relation）
+        const parentIds = child.properties["Parent"]?.relation || [];
+        let parentName = "";
+        if (parentIds.length > 0) {
+          const parents = await notionQuery(CONFIG.NOTION_DB_PARENT, {
+            // 用 page_id 查詢（Notion filter 不支援直接用 ID，改用 title equals）
+            // 這裡改用取得所有家長後比對
+          });
+          const matched = parents.find(p => p.id === parentIds[0].id);
+          if (matched) {
+            parentName = matched.properties["LINE 顯示名稱"]?.rich_text?.[0]?.text?.content || "";
+          }
+        }
+
+        alerts.push({ id: child.id, name, remaining, parentName, idx });
+      }
+    }));
+
+    loadingEl.style.display = "none";
+    statEl.textContent = alerts.length;
+
+    if (alerts.length === 0) {
+      emptyEl.style.display = "";
+      return;
+    }
+
+    // 渲染每一筆警示
+    alerts.forEach(a => {
+      if (isDismissed(a.id)) return; // 已被關閉的跳過
+
+      const row = document.createElement("div");
+      row.className = "row";
+
+      const badgeClass = a.remaining <= 0 ? "r" : "y";
+      const badgeText  = a.remaining <= 0 ? "剩 0 堂" : `剩 ${a.remaining} 堂`;
+
+      row.innerHTML = `
+        <div class="av ${avColor(a.idx)}">${avText(a.name)}</div>
+        <div style="flex:1;">
+          <div class="rname">${a.name}</div>
+          ${a.parentName ? `<div class="rsub">家長：${a.parentName}</div>` : ""}
+        </div>
+        <span class="badge ${badgeClass}" style="margin-right:6px;">${badgeText}</span>
+        <button
+          style="width:20px;height:20px;border-radius:50%;background:var(--bg2);border:0.5px solid var(--border2);font-size:11px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;"
+          title="關閉提醒 ${CONFIG.DISMISS_DAYS} 天"
+          onclick="dismissAlert('${a.id}', this.closest('.row'))">✕</button>
+      `;
+      listEl.appendChild(row);
+    });
+
+    // 若全部都被 dismiss 了
+    if (listEl.children.length === 0) {
+      emptyEl.style.display = "";
+    }
+
+  } catch (e) {
+    console.error("loadAlerts 錯誤:", e);
+    loadingEl.textContent = "⚠ 載入失敗：" + e.message;
+  }
+}
+
+// ── 載入未來 3 天課程報名 ────────────────────────────────────
+
+async function loadNext3Days() {
+  const loadingEl = document.getElementById("next3-loading");
+  const listEl    = document.getElementById("next3-list");
+  const emptyEl   = document.getElementById("next3-empty");
+  const rangeEl   = document.getElementById("next3-date-range");
+
+  const t = today();
+  const t3 = daysLater(3);
+  rangeEl.textContent = `${formatDate(t)} ～ ${formatDate(t3)}`;
+
+  try {
+    // 查詢今天到 3 天後的 Session
+    const sessions = await notionQuery(CONFIG.NOTION_DB_SESSION, {
+      and: [
+        { property: "日期", date: { on_or_after: t } },
+        { property: "日期", date: { on_or_before: t3 } },
+      ]
+    });
+
+    loadingEl.style.display = "none";
+
+    if (sessions.length === 0) {
+      emptyEl.style.display = "";
+      return;
+    }
+
+    // 依日期排序
+    sessions.sort((a, b) => {
+      const da = a.properties["日期"]?.date?.start || "";
+      const db = b.properties["日期"]?.date?.start || "";
+      return da.localeCompare(db);
+    });
+
+    // 取得所有出現的孩子 ID，批次查名稱
+    const allChildIds = new Set();
+    sessions.forEach(s => {
+      (s.properties["出席孩子"]?.relation || []).forEach(r => allChildIds.add(r.id));
+    });
+
+    // 批次取得孩子名稱（一次查所有孩子，比逐一查效率高）
+    const childMap = {}; // { id: name }
+    if (allChildIds.size > 0) {
+      const allChildren = await notionQuery(CONFIG.NOTION_DB_CHILD);
+      allChildren.forEach(c => {
+        childMap[c.id] = c.properties["暱稱"]?.title?.[0]?.text?.content || "未知";
+      });
+    }
+
+    // 渲染每一筆課程
+    sessions.forEach((s, idx) => {
+      const dateStr   = s.properties["日期"]?.date?.start || "";
+      const timeSlot  = s.properties["時段"]?.rich_text?.[0]?.text?.content || "";
+      const type      = s.properties["課程類型"]?.select?.name || "一般課程";
+      const childRels = s.properties["出席孩子"]?.relation || [];
+      const childNames = childRels.map(r => childMap[r.id] || "?");
+
+      const typeClass = type === "主題課程" ? "pk" : "t";
+
+      const row = document.createElement("div");
+      row.className = "li";
+      row.style.cssText = "display:flex;align-items:flex-start;gap:8px;padding:9px 0;border-bottom:0.5px solid var(--border);";
+
+      // 日期欄
+      const dateDiv = document.createElement("div");
+      dateDiv.style.cssText = "min-width:62px;flex-shrink:0;";
+      dateDiv.innerHTML = `
+        <div style="font-size:12px;font-weight:500;">${formatDate(dateStr).replace("（", "<br><span style='font-size:10px;color:var(--text2);'>").replace("）", "</span>")}</div>
+        ${timeSlot ? `<div style="font-size:10px;color:var(--text2);">${timeSlot}</div>` : ""}
+      `;
+
+      // 內容欄
+      const infoDiv = document.createElement("div");
+      infoDiv.style.flex = "1";
+      const tagsHtml = childNames.map((n, i) =>
+        `<span class="tag ${["t","pk","s","t","pk"][i % 5]}">${n}</span>`
+      ).join("");
+      infoDiv.innerHTML = `
+        <div style="font-size:13px;font-weight:500;">${type}</div>
+        <div style="margin-top:3px;">${tagsHtml}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;">${childNames.length} 人已報名</div>
+      `;
+
+      row.appendChild(dateDiv);
+      row.appendChild(infoDiv);
+
+      if (idx === sessions.length - 1) row.style.borderBottom = "none";
+      listEl.appendChild(row);
+    });
+
+  } catch (e) {
+    console.error("loadNext3Days 錯誤:", e);
+    loadingEl.textContent = "⚠ 載入失敗：" + e.message;
+  }
+}
+
+// ── 載入主題課程 ─────────────────────────────────────────────
+
+async function loadThemeEvents() {
+  const loadingEl = document.getElementById("theme-loading");
+  const listEl    = document.getElementById("theme-list");
+  const emptyEl   = document.getElementById("theme-empty");
+
+  try {
+    // 只載入報名狀態為「開放」的主題課程
+    const themes = await notionQuery(CONFIG.NOTION_DB_THEME, {
+      property: "報名狀態",
+      select: { equals: "開放" },
+    });
+
+    loadingEl.style.display = "none";
+
+    if (themes.length === 0) {
+      emptyEl.style.display = "";
+      return;
+    }
+
+    themes.forEach(t => {
+      const name       = t.properties["課程名稱"]?.title?.[0]?.text?.content || "未命名";
+      const dateStr    = t.properties["日期時間"]?.date?.start || "";
+      const capacity   = t.properties["名額上限"]?.number || 0;
+      const deduct     = t.properties["扣除堂數"]?.number || 1;
+      // 報名名單：逗號分隔的孩子姓名字串
+      const listRaw    = t.properties["報名名單"]?.rich_text?.[0]?.text?.content || "";
+      // 計算報名人數（排除空字串）
+      const registered = listRaw ? listRaw.split(",").map(s => s.trim()).filter(Boolean).length : 0;
+      const pct        = capacity > 0 ? Math.round((registered / capacity) * 100) : 0;
+
+      const block = document.createElement("div");
+      block.style.cssText = "border:0.5px solid var(--border);border-radius:var(--radius-md);overflow:hidden;margin-bottom:8px;";
+      block.innerHTML = `
+        <!-- 課程標題列 -->
+        <div style="background:var(--clay-rose-light);padding:10px 12px;display:flex;align-items:center;gap:8px;">
+          <span style="font-size:14px;">🎨</span>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:500;color:var(--clay-text-rose);">${name}</div>
+            <div style="font-size:11px;color:var(--clay-rose);">${dateStr ? formatDate(dateStr) : ""}</div>
+          </div>
+          <span class="badge y">扣 ${deduct} 堂</span>
+        </div>
+        <!-- 報名進度列 -->
+        <div style="padding:10px 12px;display:flex;align-items:center;gap:10px;">
+          <span style="font-size:12px;color:var(--text2);">
+            報名 <strong style="color:var(--text);">${registered}</strong> / ${capacity} 人
+          </span>
+          <div class="pbar" style="flex:1;">
+            <div class="pfill" style="width:${pct}%;"></div>
+          </div>
+        </div>
+        <!-- 報名名單 -->
+        ${registered > 0 ? `
+          <div style="padding:0 12px 10px;font-size:12px;color:var(--text2);">
+            ${listRaw.split(",").map(n => n.trim()).filter(Boolean).join("、")}
+          </div>
+        ` : ""}
+      `;
+      listEl.appendChild(block);
+    });
+
+  } catch (e) {
+    console.error("loadThemeEvents 錯誤:", e);
+    loadingEl.textContent = "⚠ 載入失敗：" + e.message;
+  }
+}
+
+// ── 頁面初始化 ───────────────────────────────────────────────
+// DOMContentLoaded 後自動載入儀表板資料
+document.addEventListener("DOMContentLoaded", loadDashboard);
+</script>
+</body>
+</html>
