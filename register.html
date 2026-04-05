@@ -248,6 +248,7 @@ function setLineUID(uid) { localStorage.setItem("sy_line_uid", uid); }
 
 const lineUID = getLineUID();
 let myParentId = null, myChildren = [], pendingCancel = null;
+const cancelPropsMap = {};
 
 document.addEventListener("DOMContentLoaded", async ()=>{
   // 取得 LINE OA 連結（由 index.html 存入的 localStorage）
@@ -265,10 +266,20 @@ async function loadRegList() {
   const emptyEl=document.getElementById("reg-empty");
   try {
     const parents=await proxyQuery("NOTION_DB_PARENT",{property:"LINE UID",title:{equals:lineUID}});
-    if(parents.length===0) { loadEl.style.display="none"; emptyEl.style.display=""; return; }
+    if(parents.length===0) { 
+      loadEl.style.display="none"; 
+      emptyEl.innerHTML="請先綁定小朋友，完成綁定後就能繼續報名";
+      emptyEl.style.display=""; 
+      return; 
+    }
     myParentId=parents[0].id;
     myChildren=await proxyQuery("NOTION_DB_CHILD",{property:"Parent",relation:{contains:myParentId}});
-    if(myChildren.length===0) { loadEl.style.display="none"; emptyEl.style.display=""; return; }
+    if(myChildren.length===0) { 
+      loadEl.style.display="none"; 
+      emptyEl.innerHTML="請先綁定小朋友，完成綁定後就能繼續報名";
+      emptyEl.style.display=""; 
+      return; 
+    }
 
     const childIds=new Set(myChildren.map(c=>c.id));
     const childNameMap={};
@@ -295,13 +306,15 @@ async function loadRegList() {
       const deduct=t.properties["扣除堂數"]?.number||1;
       const listR=t.properties["報名名單"]?.rich_text?.[0]?.text?.content||"";
       const myNames=[...childIds].map(id=>childNameMap[id]).filter(n=>listR.includes(n));
+      const newListR=listR.split(/[、, \n]+/).filter(n=>n.trim()&&!myNames.includes(n.trim())).join("、");
+      cancelPropsMap[t.id]={"報名名單":{rich_text:[{text:{content:newListR}}]}};
       const item=document.createElement("div"); item.className="reg-item";
       item.innerHTML=`<div class="ri-head">
         <div class="ri-title">${dStr?formatDate(dStr)+"　":""}${name}</div>
         <span class="tag rose">主題課程</span></div>
         <div class="ri-sub">孩子：${myNames.join("、")} · 扣 ${deduct} 堂</div>
         <div class="ri-actions">
-          <button class="ri-btn red" onclick="showCancel('theme','${t.id}','${name}','${myNames.join("、")}')">取消報名</button>
+          <button class="ri-btn red" onclick="showCancel('${t.id}','${name}','${myNames.join("、")}')">取消報名</button>
         </div>`;
       listEl.appendChild(item);
     });
@@ -312,31 +325,35 @@ async function loadRegList() {
       const dStr=s.properties["日期"]?.date?.start||"";
       const slot=s.properties["時段"]?.rich_text?.[0]?.text?.content||"";
       const deduct=s.properties["扣除堂數"]?.number||1;
-      const myKids=(s.properties["出席孩子"]?.relation||[]).filter(r=>childIds.has(r.id)).map(r=>childNameMap[r.id]||"");
+      const myKidsRel=s.properties["出席孩子"]?.relation||[];
+      const myKids=myKidsRel.filter(r=>childIds.has(r.id)).map(r=>childNameMap[r.id]||"");
+      const newKidsRel=myKidsRel.filter(r=>!childIds.has(r.id));
+      cancelPropsMap[s.id]={"出席孩子":{relation:newKidsRel}};
       const item=document.createElement("div"); item.className="reg-item";
       item.innerHTML=`<div class="ri-head">
         <div class="ri-title">${formatDate(dStr)}　一般課程</div>
         <span class="tag sage">常態課程</span></div>
         <div class="ri-sub">孩子：${myKids.join("、")} · ${slot} · 扣 ${deduct} 堂</div>
         <div class="ri-actions">
-          <button class="ri-btn red" onclick="showCancel('session','${s.id}','${formatDate(dStr)}','${myKids.join("、")}')">取消報名</button>
+          <button class="ri-btn red" onclick="showCancel('${s.id}','${formatDate(dStr)}','${myKids.join("、")}')">取消報名</button>
         </div>`;
       listEl.appendChild(item);
     });
   } catch(e) { loadEl.textContent="⚠ 載入失敗："+e.message; }
 }
 
-function showCancel(type,id,label,names) {
-  pendingCancel={type,id,names};
+function showCancel(id,label,names) {
+  pendingCancel={id,names};
   document.getElementById("cancel-desc").textContent=`確定要取消「${label}」的報名嗎？（${names}）`;
   document.getElementById("cancelModal").classList.add("show");
 }
 function closeModal() { document.getElementById("cancelModal").classList.remove("show"); pendingCancel=null; }
 async function confirmCancel() {
   if(!pendingCancel) return;
+  const props = cancelPropsMap[pendingCancel.id];
   closeModal();
   try {
-    await proxyAction("cancelRegistration",{type:pendingCancel.type,id:pendingCancel.id,childNames:pendingCancel.names,lineUID});
+    await proxyAction("update",{pageId:pendingCancel.id,properties:props});
     document.getElementById("reg-list").innerHTML="";
     document.getElementById("reg-loading").style.display="";
     document.getElementById("reg-loading").textContent="載入中…";

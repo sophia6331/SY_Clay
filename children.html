@@ -291,9 +291,13 @@ async function loadChildren() {
   loadEl.style.display=""; listEl.innerHTML="";
   try {
     const parents=await proxyQuery("NOTION_DB_PARENT",{property:"LINE UID",title:{equals:lineUID}});
-    if(parents.length===0){ loadEl.style.display="none"; listEl.innerHTML=`<div style="font-size:13px;color:var(--text2);">帳號尚未綁定，請在 LINE 輸入「綁定 名字 生日」</div>`; return; }
-    myParentId=parents[0].id;
-    myChildren=await proxyQuery("NOTION_DB_CHILD",{property:"Parent",relation:{contains:myParentId}});
+    if(parents.length===0){ 
+      myParentId=null;
+      myChildren=[];
+    } else {
+      myParentId=parents[0].id;
+      myChildren=await proxyQuery("NOTION_DB_CHILD",{property:"Parent",relation:{contains:myParentId}});
+    }
     loadEl.style.display="none";
     if(myChildren.length===0){ listEl.innerHTML=`<div style="font-size:13px;color:var(--text2);">尚未新增孩子</div>`; return; }
     myChildren.forEach((c,i)=>{
@@ -334,9 +338,19 @@ function submitAdd() {
 }
 async function confirmAdd() {
   document.getElementById("addModal").classList.remove("show");
-  if(!pendingNew||!myParentId) return;
+  if(!pendingNew) return;
   const btn=document.getElementById("add-btn"); btn.disabled=true; btn.textContent="儲存中…";
   try {
+    if(!myParentId) {
+      const pRes = await proxyPost("create",{
+        db: "NOTION_DB_PARENT",
+        properties: {
+          "LINE UID": { title: [{ text: { content: lineUID } }] },
+          "綁定時間": { date: { start: today() } }
+        }
+      });
+      myParentId = pRes.id;
+    }
     // 透過 GAS 代理新增孩子
     await proxyPost("create",{
       db: "NOTION_DB_CHILD",
