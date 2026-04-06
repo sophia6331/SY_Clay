@@ -387,7 +387,7 @@ async function loadHeroSlides() {
       const title = p["標題"]?.title?.[0]?.text?.content || "無標題";
       const sub   = p["副標題"]?.rich_text?.[0]?.text?.content || "";
       const icon  = p["圖示"]?.rich_text?.[0]?.text?.content || "🖼️";
-      const cta   = p["CTA文字"]?.rich_text?.[0]?.text?.content || "了解更多 →";
+      const cta   = "了解更多 →"; // 由於設計不含自訂 CTA
       const cover = p["封面圖連結"]?.url || "";
       
       const slide = document.createElement("div");
@@ -452,9 +452,10 @@ function hGo(i) {
 function heroClick(i) {
   const row = heroSlidesData[i];
   if(!row) return;
-  const url = row.properties["連結網址"]?.url;
+  const linkType = row.properties["連結類型"]?.select?.name || "一般連結";
+  const url = row.properties["外部連結"]?.url;
   
-  if(url) {
+  if (linkType === "一般連結" && url) {
     if(url.startsWith("http")) { 
       window.open(url, "_blank"); 
     } else if(url.startsWith("#")) {
@@ -465,6 +466,11 @@ function heroClick(i) {
     } else {
        location.href = url;
     }
+  } else if (linkType === "主題課程") {
+    // 預設捲動至我們的主題課程區塊
+    document.getElementById("s1-other").style.display="none";
+    document.getElementById("s1-theme").style.display="";
+    document.getElementById("s1-theme").scrollIntoView({behavior:"smooth"});
   } else {
     // 預設將這則 Slide 的資訊更新到底下的「活動介紹」區塊並捲動
     document.getElementById("s1-other").style.display="";
