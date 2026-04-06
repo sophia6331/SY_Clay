@@ -396,7 +396,9 @@ async function loadHeroSlides() {
       let slideInner = '';
       if (cover) {
         // 如果有封面圖，加上從底部的深色漸層，並將文字對齊左下方
-        slide.style.background = `linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0) 60%), url('${cover}') center/cover`;
+        slide.style.backgroundImage = `linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0) 60%), url('${cover}')`;
+        slide.style.backgroundPosition = "center";
+        slide.style.backgroundSize = "cover";
         slide.style.justifyContent = "flex-end";
         slide.style.alignItems = "flex-start";
         slide.style.padding = "20px";
@@ -462,6 +464,7 @@ function heroClick(i) {
   if(!row) return;
   const linkType = row.properties["連結類型"]?.select?.name || "一般連結";
   const url = row.properties["外部連結"]?.url;
+  const themeId = row.properties["主題課程ID"]?.rich_text?.[0]?.text?.content || "";
   
   if (linkType === "一般連結" && url) {
     if(url.startsWith("http")) { 
@@ -480,11 +483,12 @@ function heroClick(i) {
     document.getElementById("s1-theme").style.display="";
     
     if (themeId && typeof allOpenThemes !== 'undefined' && allOpenThemes.length > 0) {
-      // 嘗試找到對應的主題課程 (忽略 - 符號進行比對)
-      const targetTheme = allOpenThemes.find(t => t.id.replace(/-/g, '') === themeId.replace(/-/g, '')) || 
-                          allOpenThemes.find(t => t.id === themeId);
-      if (targetTheme) {
-        renderTheme(targetTheme);
+      // 嘗試找到對應的主題課程並切換至該 Slide
+      const targetIdx = allOpenThemes.findIndex(t => t.id.replace(/-/g, '') === themeId.replace(/-/g, '')) > -1 ? 
+                        allOpenThemes.findIndex(t => t.id.replace(/-/g, '') === themeId.replace(/-/g, '')) :
+                        allOpenThemes.findIndex(t => t.id === themeId);
+      if (targetIdx > -1) {
+        if(typeof tGo === 'function') tGo(targetIdx);
       }
     }
     
@@ -545,6 +549,8 @@ async function loadTheme() {
 // GAS doGet 不知道哪個是 THEME db，所以前端傳 db 名稱，
 // GAS 用 CONFIG[db] 對應。做法：db 參數傳 "NOTION_DB_THEME" 等 key name
 let allOpenThemes = [];
+let tIdx = 0;
+let tDataCount = 0;
 
 async function loadThemeReal() {
   const area = document.getElementById("theme-area");
@@ -558,83 +564,152 @@ async function loadThemeReal() {
       return;
     }
     allOpenThemes = rows;
-    renderTheme(rows[0]);
+    tDataCount = rows.length;
+    renderThemesSlider(rows);
   } catch(e) {
     area.innerHTML = `<div class="err-box">主題課程載入失敗：${e.message}</div>`;
   }
 }
 
-function renderTheme(themeObj) {
+function renderThemesSlider(rows) {
   const area = document.getElementById("theme-area");
-  if (!themeObj) return;
+  let trackHtml = `<div class="t-track" id="tTrack" style="display:flex; transition:transform .4s ease;">`;
   
-  currentTheme = themeObj;
-  const p     = currentTheme.properties;
-  const name  = p["課程名稱"]?.title?.[0]?.text?.content || "";
-  const dStr  = p["日期時間"]?.date?.start || "";
-  const desc  = p["課程說明"]?.rich_text?.[0]?.text?.content || "";
-  const imgUrl= p["封面圖連結"]?.url || "";
-  const deduct= p["扣除堂數"]?.number || 1;
-  const cap   = p["名額上限"]?.number || 0;
-  const listR = p["報名名單"]?.rich_text?.[0]?.text?.content || "";
-  const reged = listR ? listR.split(",").map(s=>s.trim()).filter(Boolean).length : 0;
-  const full  = cap>0 && reged>=cap;
-  const pct   = cap>0 ? Math.round(reged/cap*100) : 0;
+  rows.forEach((themeObj, i) => {
+    const p     = themeObj.properties;
+    const name  = p["課程名稱"]?.title?.[0]?.text?.content || "";
+    const dStr  = p["日期時間"]?.date?.start || "";
+    const desc  = p["課程說明"]?.rich_text?.[0]?.text?.content || "";
+    const imgUrl= p["封面圖連結"]?.url || "";
+    const deduct= p["扣除堂數"]?.number || 1;
+    const cap   = p["名額上限"]?.number || 0;
+    const listR = p["報名名單"]?.rich_text?.[0]?.text?.content || "";
+    const reged = listR ? listR.split(",").map(s=>s.trim()).filter(Boolean).length : 0;
+    const full  = cap>0 && reged>=cap;
+    const pct   = cap>0 ? Math.round(reged/cap*100) : 0;
+
+    trackHtml += `
+      <div class="t-slide" style="min-width:100%; flex-shrink:0; padding:2px;">
+        <div class="card" style="box-shadow:0 1px 5px rgba(0,0,0,0.05); margin-bottom:4px;">
+          <div class="img-car">
+            <div class="img-track">
+              <div class="img-slide" style="background:var(--rose-l);">
+                ${imgUrl ? `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;" alt="${name}" onerror="this.style.display='none'">` : `<div style="font-size:32px;">💐</div><div style="font-size:12px;font-weight:500;color:var(--rose-t);">${name}</div>`}
+              </div>
+            </div>
+          </div>
+          <div class="theme-big-title" style="margin-top:12px;">${name}</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">
+            ${dStr?`<span class="tag sage">${formatDate(dStr)}</span>`:""}
+            <span class="tag sand">扣 ${deduct} 堂課</span>
+          </div>
+          ${desc?`<div class="desc-block">${desc}</div>`:""}
+          <div class="pbar-wrap" style="margin-bottom:12px;">
+            <span style="font-size:12px;color:var(--text2);">剩餘名額：<strong style="color:var(--sage-t);">${cap-reged}</strong> / ${cap}</span>
+            <div class="pbar"><div class="pfill" style="width:${pct}%;"></div></div>
+          </div>
+          ${full
+            ? `<div style="text-align:center;padding:10px;font-size:13px;color:var(--text2);background:var(--bg2);border-radius:var(--r-md);">名額已滿，感謝踴躍報名</div>`
+            : `<div id="tf-err-${i}" class="err-box" style="display:none;"></div>
+               <div id="tf-form-${i}">
+                 <div class="fg">
+                   <label class="fl">孩子</label>
+                   <div id="tf-child-area-${i}"><div style="font-size:12px;color:var(--text2);">載入中…</div></div>
+                 </div>
+                 <button class="note-tog" onclick="toggleNote(${i})">
+                   <div class="note-ico" id="note-ico-${i}">＋</div><span>新增備註</span>
+                 </button>
+                 <div class="note-field" id="note-field-${i}"><input class="fi" id="tf-note-${i}" placeholder=""></div>
+                 <button class="btn-main" id="tf-btn-${i}" onclick="submitTheme(${i})">報名主題課程</button>
+               </div>
+               <div id="tf-ok-${i}" style="display:none;">
+                 <div class="success-box">
+                   <div class="ok-icon">✅</div>
+                   <div class="ok-msg">報名成功！</div>
+                   <div class="ok-sub">已為 <span id="tf-name-out-${i}"></span> 完成報名<br>課程前會透過 LINE 提醒</div>
+                 </div>
+                 <button class="btn-ghost" onclick="resetTheme(${i})">修改報名</button>
+                 <span class="cancel-lnk" onclick="cancelTheme(${i})">取消報名</span>
+               </div>`
+          }
+        </div>
+      </div>`;
+  });
+  trackHtml += `</div>`;
+  
+  let dotsHtml = `<div class="tdots" id="tDots" style="display:flex; justify-content:center; gap:5px; padding:6px 0; margin-top:2px;">`;
+  rows.forEach((_, i) => {
+    dotsHtml += `<div class="dot${i===0?' on':''}" onclick="tGo(${i})" style="width:5px;height:5px;border-radius:50%;background:var(--sand-l);cursor:pointer;transition:all .3s;"></div>`;
+  });
+  dotsHtml += `</div>`;
 
   area.innerHTML = `
-    <div class="card">
-      <div class="img-car">
-        <div class="img-track" id="imgTrack">
-          <div class="img-slide" style="background:var(--rose-l);">
-            ${imgUrl ? `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;" alt="${name}" onerror="this.style.display='none'">` : `<div style="font-size:32px;">💐</div><div style="font-size:12px;font-weight:500;color:var(--rose-t);">${name}</div>`}
-          </div>
-        </div>
-      </div>
-      <div class="idots"><div class="idot on"></div></div>
-      <div class="theme-big-title">${name}</div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">
-        ${dStr?`<span class="tag sage">${formatDate(dStr)}</span>`:""}
-        <span class="tag sand">扣 ${deduct} 堂課</span>
-      </div>
-      ${desc?`<div class="desc-block">${desc}</div>`:""}
-      <div class="pbar-wrap" style="margin-bottom:12px;">
-        <span style="font-size:12px;color:var(--text2);">剩餘名額：<strong style="color:var(--sage-t);">${cap-reged}</strong> / ${cap}</span>
-        <div class="pbar"><div class="pfill" style="width:${pct}%;"></div></div>
-      </div>
-      ${full
-        ? `<div style="text-align:center;padding:10px;font-size:13px;color:var(--text2);background:var(--bg2);border-radius:var(--r-md);">名額已滿，感謝踴躍報名</div>`
-        : `<div id="tf-err" class="err-box" style="display:none;"></div>
-           <div id="tf-form">
-             <div class="fg">
-               <label class="fl">孩子</label>
-               <div id="tf-child-area"><div style="font-size:12px;color:var(--text2);">載入中…</div></div>
-             </div>
-             <button class="note-tog" onclick="toggleNote()">
-               <div class="note-ico" id="note-ico">＋</div><span>新增備註</span>
-             </button>
-             <div class="note-field" id="note-field"><input class="fi" id="tf-note" placeholder=""></div>
-             <button class="btn-main" id="tf-btn" onclick="submitTheme()">報名主題課程</button>
-           </div>
-           <div id="tf-ok" style="display:none;">
-             <div class="success-box">
-               <div class="ok-icon">✅</div>
-               <div class="ok-msg">報名成功！</div>
-               <div class="ok-sub">已為 <span id="tf-name-out"></span> 完成報名<br>課程前會透過 LINE 提醒</div>
-             </div>
-             <button class="btn-ghost" onclick="resetTheme()">修改報名</button>
-             <span class="cancel-lnk" onclick="cancelTheme()">取消報名</span>
-           </div>`
-      }
-    </div>`;
+    <div style="position:relative; width:100%; overflow:hidden;" id="tWrap">
+      ${trackHtml}
+      ${rows.length > 1 ? `
+      <div style="position:absolute; top:35%; transform:translateY(-50%); width:100%; display:flex; justify-content:space-between; pointer-events:none; padding:0 0px;">
+        <button onclick="tMove(-1)" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.8);border:none;pointer-events:all;box-shadow:0 1px 3px rgba(0,0,0,0.1);color:var(--text2);cursor:pointer;font-size:12px;font-weight:bold;">‹</button>
+        <button onclick="tMove(1)" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.8);border:none;pointer-events:all;box-shadow:0 1px 3px rgba(0,0,0,0.1);color:var(--text2);cursor:pointer;font-size:12px;font-weight:bold;">›</button>
+      </div>` : ''}
+    </div>
+    ${rows.length > 1 ? dotsHtml : ''}
+  `;
 
-  if (!full) loadThemeChildren();
+  // load form children for all themes
+  rows.forEach((t, idx) => {
+    const cap   = t.properties["名額上限"]?.number || 0;
+    const listR = t.properties["報名名單"]?.rich_text?.[0]?.text?.content || "";
+    const reged = listR ? listR.split(",").map(s=>s.trim()).filter(Boolean).length : 0;
+    if (!(cap>0 && reged>=cap)) loadThemeChildren(idx);
+  });
+  
+  // Touch swipe support
+  if (rows.length > 1) {
+    const wrap = document.getElementById("tWrap");
+    let sx = 0;
+    wrap.ontouchstart = e => { sx = e.touches[0].clientX; };
+    wrap.ontouchend = e => { 
+      const dx = sx - e.changedTouches[0].clientX; 
+      if(Math.abs(dx)>40) tMove(dx>0?1:-1); 
+    };
+  }
 }
-function toggleNote() {
-  const f=document.getElementById("note-field"),ic=document.getElementById("note-ico");
+
+function tRender() {
+  if (tDataCount <= 1) return;
+  document.getElementById("tTrack").style.transform = `translateX(-${tIdx * 100}%)`;
+  const dots = document.querySelectorAll("#tDots .dot");
+  dots.forEach((d, i) => {
+    if (i === tIdx) {
+      d.style.background = 'var(--sage)';
+      d.style.width = '14px';
+      d.style.borderRadius = '3px';
+      d.style.opacity = '1';
+    } else {
+      d.style.background = 'var(--sand-l)';
+      d.style.width = '5px';
+      d.style.borderRadius = '50%';
+      d.style.opacity = '0.6';
+    }
+  });
+}
+function tMove(d) {
+  if (tDataCount <= 1) return;
+  tIdx = (tIdx + d + tDataCount) % tDataCount;
+  tRender();
+}
+function tGo(i) {
+  tIdx = i;
+  tRender();
+}
+
+function toggleNote(idx) {
+  const f=document.getElementById("note-field-"+idx),ic=document.getElementById("note-ico-"+idx);
+  if(!f || !ic) return;
   const s=f.classList.toggle("show"); ic.textContent=s?"－":"＋";
 }
-async function loadThemeChildren() {
-  const area = document.getElementById("tf-child-area");
+async function loadThemeChildren(idx) {
+  const area = document.getElementById("tf-child-area-"+idx);
   if (!area) return;
   if (!lineUID) { area.innerHTML=`<div style="font-size:12px;color:var(--text2);">請先透過 LINE 綁定帳號</div>`; return; }
   try {
@@ -643,35 +718,37 @@ async function loadThemeChildren() {
     if (myChildren.length===0) { area.innerHTML=`<div style="font-size:12px;color:var(--text2);">名下尚無孩子</div>`; return; }
     if (myChildren.length===1) {
       const n=myChildren[0].properties["暱稱"]?.title?.[0]?.text?.content||"";
-      area.innerHTML=`<div class="child-static" id="tf-child-single">${n}</div>`;
+      area.innerHTML=`<div class="child-static" id="tf-child-single-${idx}">${n}</div>`;
     } else {
-      let h=`<select class="fi" id="tf-child-sel">`;
+      let h=`<select class="fi" id="tf-child-sel-${idx}">`;
       myChildren.forEach(c=>{ const n=c.properties["暱稱"]?.title?.[0]?.text?.content||""; h+=`<option value="${c.id}">${n}</option>`; });
       h+="</select>"; area.innerHTML=h;
     }
   } catch(e) { area.innerHTML=`<div style="font-size:12px;color:#a32d2d;">載入失敗</div>`; }
 }
-async function submitTheme() {
-  const child = getMyChild("tf-child-sel","tf-child-single");
-  if (!child) { showErr("tf-err","請先透過 LINE 綁定帳號"); return; }
-  const note = document.getElementById("tf-note")?.value||"";
-  const btn  = document.getElementById("tf-btn");
+async function submitTheme(idx) {
+  const child = getMyChild("tf-child-sel-"+idx,"tf-child-single-"+idx);
+  if (!child) { showErr("tf-err-"+idx,"請先透過 LINE 綁定帳號"); return; }
+  const note = document.getElementById("tf-note-"+idx)?.value||"";
+  const btn  = document.getElementById("tf-btn-"+idx);
   btn.disabled=true; btn.textContent="報名中…";
   try {
+    const currentTheme = allOpenThemes[idx];
     await proxyAction("registerTheme",{themeId:currentTheme.id,childName:child.name,note});
-    document.getElementById("tf-name-out").textContent=child.name;
-    document.getElementById("tf-form").style.display="none";
-    document.getElementById("tf-ok").style.display="";
-  } catch(e) { showErr("tf-err","報名失敗："+e.message); }
+    document.getElementById("tf-name-out-"+idx).textContent=child.name;
+    document.getElementById("tf-form-"+idx).style.display="none";
+    document.getElementById("tf-ok-"+idx).style.display="";
+  } catch(e) { showErr("tf-err-"+idx,"報名失敗："+e.message); }
   finally { btn.disabled=false; btn.textContent="報名主題課程"; }
 }
-function resetTheme() { document.getElementById("tf-form").style.display=""; document.getElementById("tf-ok").style.display="none"; }
-async function cancelTheme() {
-  const child=getMyChild("tf-child-sel","tf-child-single");
-  if (!child||!currentTheme) { resetTheme(); return; }
+function resetTheme(idx) { document.getElementById("tf-form-"+idx).style.display=""; document.getElementById("tf-ok-"+idx).style.display="none"; }
+async function cancelTheme(idx) {
+  const child=getMyChild("tf-child-sel-"+idx,"tf-child-single-"+idx);
+  const currentTheme = allOpenThemes[idx];
+  if (!child||!currentTheme) { resetTheme(idx); return; }
   try {
     await proxyAction("cancelTheme",{themeId:currentTheme.id,childName:child.name});
-    resetTheme();
+    resetTheme(idx);
   } catch(e) { alert("取消失敗："+e.message); }
 }
 
