@@ -381,7 +381,7 @@ function previewPhoto(input, previewId) {
 function getImgUrl(url) {
   if (!url) return "";
   const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-  if (match) return `https://drive.google.com/uc?id=${match[1]}&export=download`;
+  if (match) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
   return url;
 }
 
