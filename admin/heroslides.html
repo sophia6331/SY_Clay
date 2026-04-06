@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SY 後台 · 首頁輪播</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --clay-rose:#C4A29E;--clay-sage:#9AAF9F;--clay-sand:#C2B49A;
+  --clay-rose-light:#EFE4E2;--clay-sage-light:#E3EDE5;--clay-sand-light:#EDE6DB;
+  --clay-rose-mid:#D4B8B4;--clay-sage-mid:#B5C9BA;--clay-sand-mid:#D4C8B4;
+  --clay-text-rose:#6B4845;--clay-text-sage:#3A5440;--clay-text-sand:#5C4E38;
+  --bg:#fff;--bg2:#f8f7f5;--bg3:#f2f0ec;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.15);
+  --text:#1a1a1a;--text2:#6b6b6b;--text3:#aaa;
+  --red-light:#fce8e8;--red:#a32d2d;
+  --amber-light:#faeeda;--amber:#854f0b;
+  --green-light:#eaf3de;--green:#3b6d11;
+  --radius-md:8px;--radius-lg:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg3);color:var(--text);}
+.shell{display:flex;min-height:100vh;}
+
+/* Sidebar */
+.sb{width:150px;background:var(--bg);border-right:0.5px solid var(--border);display:flex;flex-direction:column;padding:10px 0;gap:2px;flex-shrink:0;}
+.si{height:36px;border-radius:var(--radius-md);display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;border:none;background:transparent;color:var(--text2);padding:0 12px;white-space:nowrap;}
+.si .si-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
+.si .si-label{overflow:hidden;text-overflow:ellipsis;}
+.si.on{background:var(--clay-sand-light);color:var(--clay-text-sand);font-weight:500;}
+.si:hover:not(.on){background:var(--bg2);}
+.sdiv{height:0.5px;background:var(--border);margin:4px 12px;}
+@media(max-width:600px){
+  .sb{width:52px;align-items:center;padding:10px 0;}
+  .si{width:36px;padding:0;justify-content:center;gap:0;font-size:15px;}
+  .si .si-label{display:none;}
+  .si .si-icon{font-size:15px;width:auto;}
+  .sdiv{width:28px;margin:4px 0;}
+}
+
+/* Main */
+.main{flex:1;overflow:auto;padding:16px;min-width:0;}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.topbar h2{font-size:15px;font-weight:500;}
+
+/* Card */
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:12px;}
+.cardtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.ct{font-size:12px;font-weight:500;color:var(--text2);}
+
+/* Slide card */
+.slide-block{border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:12px;background:var(--bg);}
+.slide-head{background:var(--clay-sand-light);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.slide-head-left{display:flex;align-items:center;gap:8px;}
+.slide-icon{font-size:20px;}
+.slide-title{font-size:14px;font-weight:500;color:var(--clay-text-sand);}
+.slide-order{font-size:11px;color:var(--clay-sand);background:var(--bg);border-radius:10px;padding:2px 8px;}
+.slide-body{padding:12px 14px;}
+.slide-info{font-size:12px;color:var(--text2);margin-bottom:4px;}
+.slide-actions{display:flex;gap:6px;margin-top:8px;}
+
+/* Forms */
+.fl{font-size:11px;color:var(--text2);margin-bottom:3px;display:block;}
+.fi{width:100%;border:0.5px solid var(--border2);border-radius:var(--radius-md);padding:7px 9px;font-size:12px;background:var(--bg);color:var(--text);font-family:inherit;}
+.fi:focus{outline:none;border-color:var(--clay-sand);}
+.fg{margin-bottom:10px;}
+.frow2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.fbg{background:var(--bg2);border-radius:var(--radius-md);padding:12px;}
+
+/* Buttons */
+.abtn{background:var(--clay-sand);color:white;border:none;border-radius:var(--radius-md);padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit;}
+.abtn:disabled{opacity:.5;cursor:not-allowed;}
+.abtn.g{background:transparent;color:var(--clay-sage);border:0.5px solid var(--clay-sage-mid);}
+.abtn.sage{background:var(--clay-sage);color:white;}
+.abtn.sm{padding:4px 10px;font-size:11px;}
+.abtn.danger{background:transparent;color:var(--red);border:0.5px solid #f09595;font-size:11px;}
+.refresh-btn{background:transparent;border:0.5px solid var(--clay-sand-mid);border-radius:var(--radius-md);color:var(--clay-sand);font-size:11px;padding:4px 10px;cursor:pointer;font-family:inherit;}
+
+/* Views */
+.view{display:none;}.view.on{display:block;}
+
+/* Loading / Error / Success */
+.loading{text-align:center;padding:20px;font-size:12px;color:var(--text3);}
+.err{background:var(--red-light);color:var(--red);border-radius:var(--radius-md);padding:8px 12px;font-size:12px;margin-bottom:10px;}
+.success{background:var(--green-light);color:var(--green);border-radius:var(--radius-md);padding:8px 12px;font-size:12px;margin-bottom:10px;}
+
+/* Badge */
+.badge{font-size:10px;border-radius:4px;padding:2px 6px;white-space:nowrap;}
+.badge.on{background:var(--green-light);color:var(--green);}
+.badge.off{background:var(--bg2);color:var(--text3);}
+
+/* Photo preview */
+.photo-preview{max-width:160px;max-height:100px;object-fit:cover;border-radius:var(--radius-md);margin-top:4px;}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <div class="sb">
+    <div class="si" onclick="location.href='dashboard.html'"><span class="si-icon">🏠</span><span class="si-label">儀表板</span></div>
+    <div class="si" onclick="location.href='children.html'"><span class="si-icon">👦</span><span class="si-label">孩子管理</span></div>
+    <div class="si" onclick="location.href='parents.html'"><span class="si-icon">👨‍👩‍👧</span><span class="si-label">家長管理</span></div>
+    <div class="sdiv"></div>
+    <div class="si" onclick="location.href='sessions.html'"><span class="si-icon">📋</span><span class="si-label">一般課程</span></div>
+    <div class="si" onclick="location.href='themes.html'"><span class="si-icon">🎨</span><span class="si-label">主題課程</span></div>
+    <div class="sdiv"></div>
+    <div class="si" onclick="location.href='payments.html'"><span class="si-icon">💰</span><span class="si-label">近期付款</span></div>
+    <div class="si" onclick="location.href='plans.html'"><span class="si-icon">⚙️</span><span class="si-label">方案管理</span></div>
+    <div class="sdiv"></div>
+    <div class="si on"><span class="si-icon">🖼️</span><span class="si-label">首頁輪播</span></div>
+  </div>
+
+  <div class="main">
+
+    <!-- VIEW 1：列表 -->
+    <div class="view on" id="v-main">
+      <div class="topbar">
+        <h2>首頁輪播管理</h2>
+        <button class="abtn" onclick="showView('v-add')">＋ 新增 Slide</button>
+      </div>
+
+      <div class="card">
+        <div class="cardtop">
+          <span class="ct">目前輪播 Slide</span>
+          <button class="refresh-btn" onclick="loadSlides()">↻ 重新整理</button>
+        </div>
+        <div class="loading" id="list-loading">載入中…</div>
+        <div id="slide-list"></div>
+        <div id="list-empty" style="display:none;font-size:12px;color:var(--text2);padding:12px 0;text-align:center;">
+          目前沒有 Slide，點右上角「＋ 新增 Slide」開始建立
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 2：新增 -->
+    <div class="view" id="v-add">
+      <div class="topbar">
+        <h2>新增 Slide</h2>
+        <button class="refresh-btn" onclick="showView('v-main')">← 返回列表</button>
+      </div>
+
+      <div class="card">
+        <div id="add-err" class="err" style="display:none;"></div>
+        <div id="add-ok" class="success" style="display:none;">新增成功！</div>
+
+        <div class="fg">
+          <label class="fl">標題 *</label>
+          <input class="fi" id="add-title" placeholder="例：一日甜點店">
+        </div>
+        <div class="fg">
+          <label class="fl">副標題</label>
+          <input class="fi" id="add-subtitle" placeholder="例：模擬真實販售 · 培養數感與服務力">
+        </div>
+        <div class="frow2">
+          <div class="fg">
+            <label class="fl">圖示 Emoji</label>
+            <input class="fi" id="add-icon" placeholder="例：🍰" maxlength="4">
+          </div>
+          <div class="fg">
+            <label class="fl">排序（數字越小越前面）</label>
+            <input class="fi" id="add-order" type="number" value="1" min="1">
+          </div>
+        </div>
+        <div class="fg">
+          <label class="fl">CTA 文字</label>
+          <input class="fi" id="add-cta" placeholder="例：了解更多 →" value="了解更多 →">
+        </div>
+        <div class="fg">
+          <label class="fl">連結網址（選填）</label>
+          <input class="fi" id="add-url" placeholder="例：https://...">
+        </div>
+        <div class="fg">
+          <label class="fl">封面圖（選填）</label>
+          <input type="file" class="fi" id="add-cover" accept="image/*" onchange="previewPhoto(this,'add-cover-preview')">
+          <img id="add-cover-preview" class="photo-preview" style="display:none;">
+        </div>
+        <div class="fg">
+          <label class="fl">
+            <input type="checkbox" id="add-enabled" checked> 啟用
+          </label>
+        </div>
+        <button class="abtn" id="add-btn" onclick="submitAdd()">送出</button>
+      </div>
+    </div>
+
+    <!-- VIEW 3：編輯 -->
+    <div class="view" id="v-edit">
+      <div class="topbar">
+        <h2>編輯 Slide</h2>
+        <button class="refresh-btn" onclick="showView('v-main');loadSlides()">← 返回列表</button>
+      </div>
+
+      <div class="card">
+        <div id="edit-err" class="err" style="display:none;"></div>
+        <div id="edit-ok" class="success" style="display:none;">更新成功！</div>
+
+        <input type="hidden" id="edit-id">
+        <div class="fg">
+          <label class="fl">標題 *</label>
+          <input class="fi" id="edit-title">
+        </div>
+        <div class="fg">
+          <label class="fl">副標題</label>
+          <input class="fi" id="edit-subtitle">
+        </div>
+        <div class="frow2">
+          <div class="fg">
+            <label class="fl">圖示 Emoji</label>
+            <input class="fi" id="edit-icon" maxlength="4">
+          </div>
+          <div class="fg">
+            <label class="fl">排序</label>
+            <input class="fi" id="edit-order" type="number" min="1">
+          </div>
+        </div>
+        <div class="fg">
+          <label class="fl">CTA 文字</label>
+          <input class="fi" id="edit-cta">
+        </div>
+        <div class="fg">
+          <label class="fl">連結網址（選填）</label>
+          <input class="fi" id="edit-url">
+        </div>
+        <div class="fg">
+          <label class="fl">封面圖（重新上傳將覆蓋）</label>
+          <input type="file" class="fi" id="edit-cover" accept="image/*" onchange="previewPhoto(this,'edit-cover-preview')">
+          <img id="edit-cover-preview" class="photo-preview" style="display:none;">
+        </div>
+        <div class="fg">
+          <label class="fl">
+            <input type="checkbox" id="edit-enabled"> 啟用
+          </label>
+        </div>
+        <button class="abtn" id="edit-btn" onclick="submitEdit()">儲存</button>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+// ============================================================
+// ★ 設定 ── 換教室時只需修改這裡 ★
+// ============================================================
+const CONFIG = {
+  // ↓↓↓ 貼上你的 GAS Web App 網址 ↓↓↓
+  GAS_URL: "https://script.google.com/macros/s/AKfycbw6PBIUdHTzKBBdbQbRcU-za2rJQtBL6ZEjvJI6z1-NN1ziW1gjTafSdcx8U0E_eRHR/exec",
+
+  NOTION_DB_HEROSLIDE: "NOTION_DB_HEROSLIDE",
+};
+// ============================================================
+
+// ── GAS Proxy API ─────────────────────────────────────────
+
+async function notionQuery(dbId, filter = null, sorts = null) {
+  const url = new URL(CONFIG.GAS_URL);
+  url.searchParams.set("action", "query");
+  url.searchParams.set("db", dbId);
+  if (filter) url.searchParams.set("filter", JSON.stringify(filter));
+  if (sorts)  url.searchParams.set("sorts", JSON.stringify(sorts));
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || "查詢失敗");
+  return data.results || [];
+}
+
+async function notionCreate(dbId, properties) {
+  const res = await fetch(CONFIG.GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ source: "admin", action: "create", db: dbId, properties }),
+  });
+  if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || "未知錯誤");
+  return data.result;
+}
+
+async function notionUpdate(pageId, properties) {
+  const res = await fetch(CONFIG.GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ source: "admin", action: "update", pageId, properties }),
+  });
+  if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || "未知錯誤");
+  return data.result;
+}
+
+async function notionDelete(pageId) {
+  const res = await fetch(CONFIG.GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ source: "admin", action: "delete", pageId }),
+  });
+  if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || "未知錯誤");
+  return data.result;
+}
+
+// ── 工具函式 ─────────────────────────────────────────────────
+
+function showView(id) {
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("on"));
+  document.getElementById(id).classList.add("on");
+}
+
+function showErr(elId, msg) {
+  const el = document.getElementById(elId);
+  el.textContent = "⚠ " + msg;
+  el.style.display = "";
+}
+
+function hideMsg(elId) {
+  document.getElementById(elId).style.display = "none";
+}
+
+// ── 圖片上傳 ────────────────────────────────────────────────
+
+async function uploadImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async function () {
+      try {
+        const base64Full = reader.result;
+        const [header, base64Data] = base64Full.split(",");
+        const mimeType = header.match(/:(.*?);/)[1];
+        const ext = mimeType.split("/")[1] || "jpg";
+        const fileName = `heroslide_${Date.now()}.${ext}`;
+
+        const res = await fetch(CONFIG.GAS_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            source: "admin",
+            action: "uploadImage",
+            base64: base64Data,
+            mimeType: mimeType,
+            fileName: fileName,
+          }),
+        });
+        if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || "上傳失敗");
+        resolve(data.url);
+      } catch (e) {
+        reject(e);
+      }
+    };
+    reader.onerror = () => reject(new Error("讀取檔案失敗"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function previewPhoto(input, previewId) {
+  const img = document.getElementById(previewId);
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => { img.src = e.target.result; img.style.display = ""; };
+    reader.readAsDataURL(input.files[0]);
+  } else {
+    img.style.display = "none";
+  }
+}
+
+// ── 資料存取 ────────────────────────────────────────────────
+
+let slidesCache = [];
+
+async function loadSlides() {
+  const list = document.getElementById("slide-list");
+  const loading = document.getElementById("list-loading");
+  const empty = document.getElementById("list-empty");
+  loading.style.display = "";
+  list.innerHTML = "";
+  empty.style.display = "none";
+
+  try {
+    const rows = await notionQuery(
+      CONFIG.NOTION_DB_HEROSLIDE,
+      null,
+      [{ property: "排序", direction: "ascending" }]
+    );
+    slidesCache = rows;
+    loading.style.display = "none";
+    if (rows.length === 0) { empty.style.display = ""; return; }
+
+    rows.forEach((row, idx) => {
+      const p = row.properties;
+      const title    = p["標題"]?.title?.[0]?.text?.content || "(無標題)";
+      const subtitle = p["副標題"]?.rich_text?.[0]?.text?.content || "";
+      const icon     = p["圖示"]?.rich_text?.[0]?.text?.content || "🖼️";
+      const order    = p["排序"]?.number ?? (idx+1);
+      const enabled  = p["啟用"]?.checkbox ?? true;
+      const cta      = p["CTA文字"]?.rich_text?.[0]?.text?.content || "";
+      const url      = p["連結網址"]?.url || "";
+      const coverUrl = p["封面圖連結"]?.url || "";
+
+      list.innerHTML += `
+        <div class="slide-block">
+          <div class="slide-head">
+            <div class="slide-head-left">
+              <span class="slide-icon">${icon}</span>
+              <span class="slide-title">${title}</span>
+              <span class="badge ${enabled ? 'on' : 'off'}">${enabled ? '啟用' : '停用'}</span>
+            </div>
+            <span class="slide-order">#${order}</span>
+          </div>
+          <div class="slide-body">
+            ${subtitle ? `<div class="slide-info">副標題：${subtitle}</div>` : ""}
+            ${cta ? `<div class="slide-info">CTA：${cta}</div>` : ""}
+            ${url ? `<div class="slide-info">連結：<a href="${url}" target="_blank" style="color:var(--clay-sage);font-size:11px;">${url.substring(0,50)}…</a></div>` : ""}
+            ${coverUrl ? `<div style="margin-top:6px;"><img src="${coverUrl}" style="max-width:120px;max-height:70px;object-fit:cover;border-radius:6px;" onerror="this.style.display='none'"></div>` : ""}
+            <div class="slide-actions">
+              <button class="abtn sm sage" onclick="editSlide('${row.id}')">✏️ 編輯</button>
+              <button class="abtn sm danger" onclick="deleteSlide('${row.id}','${title.replace(/'/g,"\\'")}')">🗑 刪除</button>
+            </div>
+          </div>
+        </div>`;
+    });
+  } catch (e) {
+    loading.style.display = "none";
+    list.innerHTML = `<div class="err">載入失敗：${e.message}</div>`;
+  }
+}
+
+// ── 新增 ────────────────────────────────────────────────────
+
+async function submitAdd() {
+  const btn = document.getElementById("add-btn");
+  hideMsg("add-err"); hideMsg("add-ok");
+
+  const title = document.getElementById("add-title").value.trim();
+  if (!title) { showErr("add-err", "請輸入標題"); return; }
+
+  const subtitle = document.getElementById("add-subtitle").value.trim();
+  const icon     = document.getElementById("add-icon").value.trim() || "🖼️";
+  const order    = parseInt(document.getElementById("add-order").value) || 1;
+  const cta      = document.getElementById("add-cta").value.trim();
+  const url      = document.getElementById("add-url").value.trim();
+  const enabled  = document.getElementById("add-enabled").checked;
+
+  btn.disabled = true; btn.textContent = "送出中…";
+
+  try {
+    // 處理封面圖上傳
+    let coverUrl = "";
+    const coverFile = document.getElementById("add-cover").files[0];
+    if (coverFile) {
+      coverUrl = await uploadImageFile(coverFile);
+    }
+
+    const properties = {
+      "標題": { title: [{ text: { content: title } }] },
+      "副標題": { rich_text: [{ text: { content: subtitle } }] },
+      "圖示": { rich_text: [{ text: { content: icon } }] },
+      "排序": { number: order },
+      "CTA文字": { rich_text: [{ text: { content: cta } }] },
+      "啟用": { checkbox: enabled },
+    };
+    if (url)      properties["連結網址"] = { url: url };
+    if (coverUrl) properties["封面圖連結"] = { url: coverUrl };
+
+    await notionCreate(CONFIG.NOTION_DB_HEROSLIDE, properties);
+    document.getElementById("add-ok").style.display = "";
+
+    // 清空表單
+    document.getElementById("add-title").value = "";
+    document.getElementById("add-subtitle").value = "";
+    document.getElementById("add-icon").value = "";
+    document.getElementById("add-order").value = "1";
+    document.getElementById("add-cta").value = "了解更多 →";
+    document.getElementById("add-url").value = "";
+    document.getElementById("add-cover").value = "";
+    document.getElementById("add-cover-preview").style.display = "none";
+    document.getElementById("add-enabled").checked = true;
+
+  } catch (e) {
+    showErr("add-err", e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "送出";
+  }
+}
+
+// ── 編輯 ────────────────────────────────────────────────────
+
+function editSlide(pageId) {
+  const row = slidesCache.find(r => r.id === pageId);
+  if (!row) return;
+
+  const p = row.properties;
+  document.getElementById("edit-id").value = pageId;
+  document.getElementById("edit-title").value    = p["標題"]?.title?.[0]?.text?.content || "";
+  document.getElementById("edit-subtitle").value = p["副標題"]?.rich_text?.[0]?.text?.content || "";
+  document.getElementById("edit-icon").value     = p["圖示"]?.rich_text?.[0]?.text?.content || "";
+  document.getElementById("edit-order").value    = p["排序"]?.number ?? 1;
+  document.getElementById("edit-cta").value      = p["CTA文字"]?.rich_text?.[0]?.text?.content || "";
+  document.getElementById("edit-url").value      = p["連結網址"]?.url || "";
+  document.getElementById("edit-enabled").checked = p["啟用"]?.checkbox ?? true;
+
+  const coverUrl = p["封面圖連結"]?.url || "";
+  const preview = document.getElementById("edit-cover-preview");
+  if (coverUrl) { preview.src = coverUrl; preview.style.display = ""; }
+  else { preview.style.display = "none"; }
+
+  document.getElementById("edit-cover").value = "";
+  hideMsg("edit-err"); hideMsg("edit-ok");
+  showView("v-edit");
+}
+
+async function submitEdit() {
+  const btn = document.getElementById("edit-btn");
+  hideMsg("edit-err"); hideMsg("edit-ok");
+
+  const pageId = document.getElementById("edit-id").value;
+  const title  = document.getElementById("edit-title").value.trim();
+  if (!title) { showErr("edit-err", "請輸入標題"); return; }
+
+  const subtitle = document.getElementById("edit-subtitle").value.trim();
+  const icon     = document.getElementById("edit-icon").value.trim() || "🖼️";
+  const order    = parseInt(document.getElementById("edit-order").value) || 1;
+  const cta      = document.getElementById("edit-cta").value.trim();
+  const url      = document.getElementById("edit-url").value.trim();
+  const enabled  = document.getElementById("edit-enabled").checked;
+
+  btn.disabled = true; btn.textContent = "儲存中…";
+
+  try {
+    // 處理封面圖上傳
+    let coverUrl = "";
+    const coverFile = document.getElementById("edit-cover").files[0];
+    if (coverFile) {
+      coverUrl = await uploadImageFile(coverFile);
+    }
+
+    const properties = {
+      "標題": { title: [{ text: { content: title } }] },
+      "副標題": { rich_text: [{ text: { content: subtitle } }] },
+      "圖示": { rich_text: [{ text: { content: icon } }] },
+      "排序": { number: order },
+      "CTA文字": { rich_text: [{ text: { content: cta } }] },
+      "啟用": { checkbox: enabled },
+    };
+    if (url) properties["連結網址"] = { url: url };
+    else     properties["連結網址"] = { url: null };
+    if (coverUrl) properties["封面圖連結"] = { url: coverUrl };
+
+    await notionUpdate(pageId, properties);
+    document.getElementById("edit-ok").style.display = "";
+
+  } catch (e) {
+    showErr("edit-err", e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = "儲存";
+  }
+}
+
+// ── 刪除 ────────────────────────────────────────────────────
+
+async function deleteSlide(pageId, title) {
+  if (!confirm(`確定要刪除「${title}」嗎？`)) return;
+  try {
+    await notionDelete(pageId);
+    loadSlides();
+  } catch (e) {
+    alert("刪除失敗：" + e.message);
+  }
+}
+
+// ── 初始化 ──────────────────────────────────────────────────
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadSlides();
+});
+</script>
+</body>
+</html>
