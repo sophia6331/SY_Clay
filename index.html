@@ -4,6 +4,16 @@
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SY 兒童手作教室</title>
 <style>
+/* [Bug 1] hero-slide gap 縮小 50%（原本 8px → 4px） */
+.hero-slide { gap: 4px !important; }
+
+/* [Bug 2] hero 背景圖顯示 */
+.hero-track,
+.hero-slide {
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
   --sage:#9AAF9F;--sage-l:#E3EDE5;--sage-m:#B5C9BA;--sage-t:#3A5440;
@@ -496,18 +506,46 @@ function heroClick(i) {
     // 切換到對應的主題課程並捲動
     document.getElementById("s1-other").style.display="none";
     document.getElementById("s1-theme").style.display="";
-    
-    if (themeId && typeof allOpenThemes !== 'undefined' && allOpenThemes.length > 0) {
-      // 嘗試找到對應的主題課程並切換至該 Slide
-      const targetIdx = allOpenThemes.findIndex(t => t.id.replace(/-/g, '') === themeId.replace(/-/g, '')) > -1 ? 
-                        allOpenThemes.findIndex(t => t.id.replace(/-/g, '') === themeId.replace(/-/g, '')) :
-                        allOpenThemes.findIndex(t => t.id === themeId);
-      if (targetIdx > -1) {
-        if(typeof tGo === 'function') tGo(targetIdx);
-      }
-    }
-    
+
+    // 先 scroll 到主題課程區塊
     document.getElementById("s1-theme").scrollIntoView({behavior:"smooth"});
+
+    // 延遲切換 carousel（等 scroll 完成，且確保資料已載入）
+    const doGoTheme = () => {
+      if (!themeId) return;
+      if (typeof allOpenThemes === 'undefined' || allOpenThemes.length === 0) return;
+      const normalize = s => s.replace(/-/g,'');
+      const targetIdx = allOpenThemes.findIndex(t => normalize(t.id) === normalize(themeId));
+      if (targetIdx < 0) return;
+      tIdx = targetIdx;
+      // 直接操作 DOM，不走 tRender 的 count guard
+      const track = document.getElementById("tTrack");
+      if (track) track.style.transform = `translateX(-${tIdx * 100}%)`;
+      document.querySelectorAll("#tDots .dot").forEach((d, i) => {
+        if (i === tIdx) {
+          d.style.background='var(--sage)'; d.style.width='14px';
+          d.style.borderRadius='3px'; d.style.opacity='1';
+        } else {
+          d.style.background='var(--sand-l)'; d.style.width='5px';
+          d.style.borderRadius='50%'; d.style.opacity='0.6';
+        }
+      });
+    };
+
+    if (typeof allOpenThemes !== 'undefined' && allOpenThemes.length > 0) {
+      // 資料已載入，等垂直 scroll 結束後再切換
+      setTimeout(doGoTheme, 650);
+    } else {
+      // 資料還沒好，輪詢等待最多 3 秒
+      let waited = 0;
+      const waitInterval = setInterval(() => {
+        waited += 200;
+        if ((typeof allOpenThemes !== 'undefined' && allOpenThemes.length > 0) || waited > 3000) {
+          clearInterval(waitInterval);
+          setTimeout(doGoTheme, 650);
+        }
+      }, 200);
+    }
   } else {
     // 預設將這則 Slide 的資訊更新到底下的「活動介紹」區塊並捲動
     document.getElementById("s1-other").style.display="";
@@ -691,7 +729,7 @@ function renderThemesSlider(rows) {
 }
 
 function tRender() {
-  if (tDataCount <= 1) return;
+  if (tDataCount < 1) return;
   document.getElementById("tTrack").style.transform = `translateX(-${tIdx * 100}%)`;
   const dots = document.querySelectorAll("#tDots .dot");
   dots.forEach((d, i) => {
