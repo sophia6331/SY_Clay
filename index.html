@@ -840,11 +840,9 @@
   <div class="page">
 
     <nav class="nav">
-      <div class="nav-logo">
-        <img
-          src="/images/logo.png"
-          style="width:30px;height:30px;border-radius:7px;object-fit:contain;" alt="logo">
-        <span class="nav-title" id="nav-studio-name">SY 兒童手作教室</span>
+      <div class="nav-logo" id="nav-logo">
+        <img src="images/logo.png" style="height:28px;" onerror="this.style.display='none'">
+        <div class="nav-title" id="nav-studio-name">SY 兒童手作教室</div>
       </div>
       <div class="nav-links">
         <a class="nl on" href="index.html">首頁</a>
@@ -891,7 +889,6 @@
     <div class="sec" style="margin-top:4px;">
       <div style="display:flex;align-items:center;margin-bottom:10px;">
         <span class="sec-lbl" style="margin-bottom:0;">常態課程</span>
-        <button class="reg-toggle-btn" id="regToggleBtn" onclick="toggleRegForm()">報名</button>
       </div>
       <div class="sch-grid" id="schGrid">
         <div class="loading" style="grid-column:span 2;">載入中…</div>
@@ -1106,8 +1103,14 @@
 
     function getImgUrl(url) {
       if (!url) return "";
-      const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-      if (match) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+      let id = "";
+      const m1 = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (m1) id = m1[1];
+      else {
+        const m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+        if (m2) id = m2[1];
+      }
+      if (id) return `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
       return url;
     }
 
@@ -1164,14 +1167,14 @@
             slide.style.padding = "20px";
 
             slideInner = `
-          <div class="s-title" style="color:#ffffff; text-shadow:0 1px 4px rgba(0,0,0,0.6); font-size:19px; margin-bottom:4px; z-index:2;">${title}</div>
-          <div class="s-sub" style="color:#eeeeee; text-shadow:0 1px 3px rgba(0,0,0,0.6); font-size:13px; z-index:2;">${sub}</div>
+          <div class="s-title" style="color:#ffffff; text-shadow:0 1px 4px rgba(0,0,0,0.6); font-size:19px; margin-bottom:4px; z-index:2; align-self:flex-start;">${title}</div>
+          <div class="s-sub" style="color:#eeeeee; text-shadow:0 1px 3px rgba(0,0,0,0.6); font-size:13px; z-index:2; align-self:flex-start;">${sub}</div>
         `;
           } else {
             // 沒有封面圖，純色背景居中顯示
             slideInner = `
-          <div class="s-title">${title}</div>
-          <div class="s-sub">${sub}</div>
+          <div class="s-title" style="position:relative; z-index:2;">${title}</div>
+          <div class="s-sub" style="position:relative; z-index:2;">${sub}</div>
         `;
           }
 
@@ -1622,7 +1625,7 @@
           const price = p.properties["總價"]?.number || 0;
           const qty = p.properties["堂數"]?.number || 1;
           const avg = Math.round(price / qty);
-          const feat = i === rows.length - 1;
+          const feat = p.properties["推薦方案"]?.checkbox === true;
           area.innerHTML += `<div class="price-item${feat ? " feat" : ""}">
         <div><div class="p-name${feat ? " feat" : ""}">${name}${feat ? '<span class="badge-sm">推薦</span>' : ""}</div>
         <div class="p-sub">${qty} 堂 · 平均每堂 $${avg}</div></div>
@@ -1632,12 +1635,13 @@
     }
 
     // ── 常態課程報名 ─────────────────────────────────────────────
-    function toggleRegForm() {
-      const w = document.getElementById("regWrap");
-      const open = w.classList.toggle("show");
-      document.getElementById("regToggleBtn").textContent = open ? "收起" : "報名";
-      if (open) loadRegChildren();
+    function initRegForm() {
+      document.getElementById("regWrap").classList.add("show");
+      loadRegChildren();
     }
+    
+    // (移除原有的 toggleRegForm，改為由這兩個頂替)
+    function toggleRegForm() {}
     async function loadMyParent() {
       if (!lineUID) return;
       const parents = await proxyQuery("NOTION_DB_PARENT", { property: "LINE UID", title: { equals: lineUID } });
@@ -1703,7 +1707,9 @@
       loadConfig();
       loadHeroSlides();
       loadThemeReal();
-      loadSchedule();
+      loadSchedule().then(() => {
+        initRegForm();
+      });
       loadPlans();
     });
   </script>
