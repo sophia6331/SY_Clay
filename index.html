@@ -1107,7 +1107,7 @@
     function getImgUrl(url) {
       if (!url) return "";
       const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-      if (match) return `https://drive.google.com/uc?id=${match[1]}&export=download`;
+      if (match) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
       return url;
     }
 
@@ -1333,7 +1333,7 @@
 
     function renderThemesSlider(rows) {
       const area = document.getElementById("theme-area");
-      let trackHtml = `<div class="t-track" id="tTrack" style="display:flex; transition:transform .4s ease; width:${rows.length * 100}%;">`;
+      let trackHtml = `<div class="t-track" id="tTrack" style="display:flex; flex-wrap:nowrap; align-items:stretch; transition:transform .4s ease; width:${rows.length * 100}%;">`;
 
       rows.forEach((themeObj, i) => {
         const p = themeObj.properties;
@@ -1349,8 +1349,8 @@
         const pct = cap > 0 ? Math.round(reged / cap * 100) : 0;
 
         trackHtml += `
-      <div class="t-slide" style="width:${100 / rows.length}%; flex-shrink:0; padding:2px;">
-        <div class="card" style="box-shadow:0 1px 5px rgba(0,0,0,0.05); margin-bottom:4px;">
+      <div class="t-slide" style="width:${100 / rows.length}%; flex-shrink:0; padding:2px; box-sizing:border-box;">
+        <div class="card" style="box-shadow:0 1px 5px rgba(0,0,0,0.05); margin-bottom:4px; height:100%;">
           <div class="img-car">
             <div class="img-track">
               <div class="img-slide" style="background:var(--rose-l);">
@@ -1437,7 +1437,7 @@
 
     function tRender() {
       if (tDataCount <= 1) return;
-      document.getElementById("tTrack").style.transform = `translateX(-${tIdx * 100}%)`;
+      document.getElementById("tTrack").style.transform = `translateX(-${tIdx * (100 / tDataCount)}%)`;
       const dots = document.querySelectorAll("#tDots .dot");
       dots.forEach((d, i) => {
         if (i === tIdx) {
