@@ -136,35 +136,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 <!-- ── 主視覺輪播 ── -->
 <div class="hero-wrap">
   <div class="hero-track" id="hTrack">
-    <div class="hero-slide hs1" onclick="heroClick(0)">
-      <div class="s-icon">💐</div>
-      <div class="s-title" id="h0-title">主題課程</div>
-      <div class="s-sub"  id="h0-sub">載入中…</div>
-      <div class="s-cta">點此報名 →</div>
-    </div>
-    <div class="hero-slide hs2" onclick="heroClick(1)">
-      <div class="s-icon">🍰</div>
-      <div class="s-title">一日甜點店</div>
-      <div class="s-sub">模擬真實販售 · 培養數感與服務力</div>
-      <div class="s-cta">了解更多 →</div>
-    </div>
-    <div class="hero-slide hs3" onclick="heroClick(2)">
-      <div class="s-icon">⭐</div>
-      <div class="s-title">小小助教計畫</div>
-      <div class="s-sub">培養責任感與領導力</div>
-      <div class="s-cta">了解更多 →</div>
-    </div>
+    <div style="padding:40px;text-align:center;color:var(--text2);font-size:14px;width:100%;">載入中…</div>
   </div>
   <div class="h-arrows">
     <button class="h-arrow" onclick="hMove(-1)">‹</button>
     <button class="h-arrow" onclick="hMove(1)">›</button>
   </div>
 </div>
-<div class="hdots" id="hDots">
-  <div class="dot on" onclick="hGo(0)"></div>
-  <div class="dot"    onclick="hGo(1)"></div>
-  <div class="dot"    onclick="hGo(2)"></div>
-</div>
+<div class="hdots" id="hDots"></div>
 
 <!-- ── S1: 主題課程 ── -->
 <div id="s1-theme">
@@ -380,37 +359,123 @@ let myChildren   = [];     // 家長名下孩子
 let myParentId   = null;
 const lineUID    = getLineUID();
 
-// ── 輪播 ──────────────────────────────────────────────────────
+// ── 輪播 (動態載入) ──────────────────────────────────────────────────────
 let hIdx = 0;
-const ALT_SLIDES = [
-  null,
-  {icon:"🍰", name:"一日甜點店",  desc:"模擬真實甜點販售情境，孩子學習定價、服務客人，培養數感與溝通力。"},
-  {icon:"⭐", name:"小小助教計畫", desc:"孩子擔任小助教，在協助他人的過程中培養責任感、溝通力與領導力。"},
-];
-function hRender() {
-  document.getElementById("hTrack").style.transform = `translateX(-${hIdx*100}%)`;
-  document.querySelectorAll("#hDots .dot").forEach((d,i) => d.className = "dot"+(i===hIdx?" on":""));
-}
-function hMove(d) { hIdx=(hIdx+d+3)%3; hRender(); heroClick(hIdx); }
-function hGo(i)   { hIdx=i;             hRender(); heroClick(i); }
-function heroClick(i) {
-  const t=document.getElementById("s1-theme"), o=document.getElementById("s1-other");
-  if (i===0) { t.style.display=""; o.style.display="none"; }
-  else {
-    t.style.display="none"; o.style.display="";
-    const d=ALT_SLIDES[i];
-    document.getElementById("other-icon").textContent=d.icon;
-    document.getElementById("other-name").textContent=d.name;
-    document.getElementById("other-desc").textContent=d.desc;
-    document.getElementById("other-lbl").textContent=d.name;
+let heroSlidesData = [];
+
+async function loadHeroSlides() {
+  const track = document.getElementById("hTrack");
+  const dots  = document.getElementById("hDots");
+  try {
+    const rows = await proxyQuery("NOTION_DB_HEROSLIDE", 
+      { property:"啟用", checkbox:{equals:true} }, 
+      [{ property:"排序", direction:"ascending" }]
+    );
+    heroSlidesData = rows;
+    
+    if (rows.length === 0) {
+      track.innerHTML = `<div style="padding:40px;text-align:center;width:100%;font-size:14px;color:var(--text2);">目前無相關資訊</div>`;
+      dots.innerHTML = "";
+      return;
+    }
+    
+    track.innerHTML = "";
+    dots.innerHTML  = "";
+    
+    rows.forEach((row, i) => {
+      const p = row.properties;
+      const title = p["標題"]?.title?.[0]?.text?.content || "無標題";
+      const sub   = p["副標題"]?.rich_text?.[0]?.text?.content || "";
+      const icon  = p["圖示"]?.rich_text?.[0]?.text?.content || "🖼️";
+      const cta   = p["CTA文字"]?.rich_text?.[0]?.text?.content || "了解更多 →";
+      const cover = p["封面圖連結"]?.url || "";
+      
+      const slide = document.createElement("div");
+      // 用餘數決定背景類別
+      slide.className = "hero-slide hs" + ((i % 3) + 1);
+      slide.onclick = () => heroClick(i);
+      
+      if (cover) {
+        // 若有封面可以當背景
+        slide.style.background = `linear-gradient(rgba(255,255,255,0.75), rgba(255,255,255,0.9)), url('${cover}') center/cover`;
+      }
+      
+      slide.innerHTML = `
+        <div class="s-icon">${icon}</div>
+        <div class="s-title">${title}</div>
+        <div class="s-sub">${sub}</div>
+        <div class="s-cta">${cta}</div>
+      `;
+      track.appendChild(slide);
+      
+      // dot
+      const dot = document.createElement("div");
+      dot.className = "dot" + (i===0 ? " on" : "");
+      dot.onclick = () => hGo(i);
+      dots.appendChild(dot);
+    });
+    
+    // 設定寬度 & 事件
+    const len = rows.length;
+    track.style.width = (len * 100) + "%";
+    Array.from(track.children).forEach(c => {
+      c.style.width = (100 / len) + "%";
+    });
+
+    let s = 0;
+    track.ontouchstart = e => { s = e.touches[0].clientX; };
+    track.ontouchend   = e => { const dx = s - e.changedTouches[0].clientX; if(Math.abs(dx)>40) hMove(dx>0?1:-1); };
+
+    hIdx = 0;
+    hRender();
+
+  } catch (e) {
+    track.innerHTML = `<div style="padding:40px;text-align:center;color:#a32d2d;width:100%;">輪播載入失敗</div>`;
   }
 }
-// 觸控滑動
-(()=>{
-  const t=document.getElementById("hTrack"); let s=0;
-  t.addEventListener("touchstart", e=>{s=e.touches[0].clientX;});
-  t.addEventListener("touchend",   e=>{const d=s-e.changedTouches[0].clientX;if(Math.abs(d)>40)hMove(d>0?1:-1);});
-})();
+
+function hRender() {
+  const len = heroSlidesData.length || 1;
+  document.getElementById("hTrack").style.transform = `translateX(-${hIdx*(100/len)}%)`;
+  document.querySelectorAll("#hDots .dot").forEach((d,i) => d.className = "dot"+(i===hIdx?" on":""));
+}
+function hMove(d) { 
+  const len = heroSlidesData.length || 1;
+  hIdx = (hIdx + d + len) % len; 
+  hRender(); 
+}
+function hGo(i) { 
+  hIdx = i; 
+  hRender(); 
+}
+
+function heroClick(i) {
+  const row = heroSlidesData[i];
+  if(!row) return;
+  const url = row.properties["連結網址"]?.url;
+  
+  if(url) {
+    if(url.startsWith("http")) { 
+      window.open(url, "_blank"); 
+    } else if(url.startsWith("#")) {
+       document.getElementById("s1-other").style.display="none";
+       document.getElementById("s1-theme").style.display="";
+       const el = document.querySelector(url);
+       if(el) el.scrollIntoView({behavior:"smooth"});
+    } else {
+       location.href = url;
+    }
+  } else {
+    // 預設將這則 Slide 的資訊更新到底下的「活動介紹」區塊並捲動
+    document.getElementById("s1-other").style.display="";
+    document.getElementById("s1-theme").style.display="none";
+    document.getElementById("other-icon").textContent = row.properties["圖示"]?.rich_text?.[0]?.text?.content || "🖼️";
+    document.getElementById("other-name").textContent = row.properties["標題"]?.title?.[0]?.text?.content || "";
+    document.getElementById("other-desc").textContent = row.properties["副標題"]?.rich_text?.[0]?.text?.content || "";
+    document.getElementById("other-lbl").textContent  = row.properties["標題"]?.title?.[0]?.text?.content || "";
+    document.getElementById("s1-other").scrollIntoView({behavior:"smooth"});
+  }
+}
 
 // ── 從 GAS 取得教室設定 ──────────────────────────────────────
 // GAS doGet?action=getConfig 回傳 {studio_name, line_oa_url, line_qr_url}
@@ -464,7 +529,6 @@ async function loadThemeReal() {
     );
     if (rows.length===0) {
       area.innerHTML="<div style='font-size:13px;color:var(--text2);padding:10px 0;'>目前沒有開放中的主題課程</div>";
-      document.getElementById("h0-sub").textContent="目前無開放課程";
       return;
     }
     currentTheme = rows[0];
@@ -479,9 +543,6 @@ async function loadThemeReal() {
     const reged = listR ? listR.split(",").map(s=>s.trim()).filter(Boolean).length : 0;
     const full  = cap>0 && reged>=cap;
     const pct   = cap>0 ? Math.round(reged/cap*100) : 0;
-
-    document.getElementById("h0-title").textContent = name;
-    document.getElementById("h0-sub").textContent   = dStr ? formatDate(dStr)+"　扣 "+deduct+" 堂" : "扣 "+deduct+" 堂";
 
     area.innerHTML = `
       <div class="card">
@@ -769,6 +830,7 @@ function showErr(id,msg) { const el=document.getElementById(id); el.textContent=
 // ── 初始化 ────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", ()=>{
   loadConfig();
+  loadHeroSlides();
   loadThemeReal();
   loadSchedule();
   loadPlans();
