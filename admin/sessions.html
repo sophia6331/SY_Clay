@@ -662,8 +662,9 @@
                 <input class="fi" id="add-note" placeholder="如：下雨天人數較少">
               </div>
               <div class="fg" style="margin-bottom:0;">
-                <label class="fl">圖片連結</label>
-                <input class="fi" id="add-photo" placeholder="網址 (如 Google Drive)">
+                <label class="fl">上傳圖片</label>
+                <input class="fi" id="add-photo" type="file" accept="image/*" style="padding:4px 6px;" onchange="previewPhoto(this,'add-photo-preview')">
+                <div id="add-photo-preview" style="margin-top:4px;"></div>
               </div>
             </div>
 
@@ -839,6 +840,58 @@
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "未知錯誤");
       return data.result;
+    }
+
+    // ── 圖片上傳工具 ─────────────────────────────────────────────
+
+    /** 將 File 物件上傳到 GAS → Google Drive，回傳公開網址 */
+    async function uploadImageFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async function () {
+          try {
+            const base64Full = reader.result; // data:image/jpeg;base64,xxxx
+            const [header, base64Data] = base64Full.split(",");
+            const mimeType = header.match(/:(.*?);/)[1];
+            const ext = mimeType.split("/")[1] || "jpg";
+            const fileName = `img_${Date.now()}.${ext}`;
+
+            const res = await fetch(CONFIG.GAS_URL, {
+              method: "POST",
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
+              body: JSON.stringify({
+                source: "admin",
+                action: "uploadImage",
+                base64: base64Data,
+                mimeType: mimeType,
+                fileName: fileName,
+              }),
+            });
+            if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
+            const data = await res.json();
+            if (!data.ok) throw new Error(data.error || "上傳失敗");
+            resolve(data.url);
+          } catch (e) {
+            reject(e);
+          }
+        };
+        reader.onerror = () => reject(new Error("讀取檔案失敗"));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    /** 圖片預覽 */
+    function previewPhoto(input, previewId) {
+      const preview = document.getElementById(previewId);
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          preview.innerHTML = `<img src="${e.target.result}" style="max-width:120px;max-height:80px;border-radius:6px;border:0.5px solid var(--border);">`;
+        };
+        reader.readAsDataURL(input.files[0]);
+      } else {
+        preview.innerHTML = "";
+      }
     }
 
     // ── 工具函式 ─────────────────────────────────────────────────
@@ -1199,7 +1252,7 @@
       const slot = document.getElementById("add-slot").value.trim();
       const deduct = parseFloat(document.getElementById("add-deduct").value) || 1;
       const note = document.getElementById("add-note").value.trim();
-      const photoUrl = document.getElementById("add-photo").value.trim();
+      const photoFile = document.getElementById("add-photo").files[0] || null;
 
       if (!date) { showErr("add-err", "請選擇上課日期"); return; }
       if (selectedChildIds.size === 0) { showErr("add-err", "請至少選擇一位出席孩子"); return; }
@@ -1209,6 +1262,15 @@
       btn.textContent = "儲存中…";
 
       try {
+        // 如果有選圖片，先上傳到 Google Drive
+        let photoUrl = "";
+        if (photoFile) {
+          btn.textContent = "上傳圖片中…";
+          photoUrl = await uploadImageFile(photoFile);
+        }
+
+        btn.textContent = "儲存中…";
+
         // 課程 ID：用日期+隨機碼
         const sessionId = `S-${date}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
@@ -1223,7 +1285,6 @@
         if (slot) props["時段"] = { rich_text: [{ text: { content: slot } }] };
         if (note) props["備註"] = { rich_text: [{ text: { content: note } }] };
         if (photoUrl) {
-          // 假設 Photo 欄位為 Files & media，如果原本是 Relation 請在 Notion 改成 Files & media (檔案與媒體) 才能儲存連結
           props["Photo"] = { files: [{ name: "photo", type: "external", external: { url: photoUrl } }] };
         }
 
@@ -1238,6 +1299,7 @@
         document.getElementById("add-deduct").value = "1";
         document.getElementById("add-note").value = "";
         document.getElementById("add-photo").value = "";
+        document.getElementById("add-photo-preview").innerHTML = "";
         selectedChildIds.clear();
         renderChips();
         renderDropdown();

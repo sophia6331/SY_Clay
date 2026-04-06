@@ -233,8 +233,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
           </div>
 
           <div class="fg">
-            <label class="fl">封面圖連結（Google Drive）</label>
-            <input class="fi" id="add-cover" placeholder="https://drive.google.com/...">
+            <label class="fl">封面圖片</label>
+            <input class="fi" id="add-cover" type="file" accept="image/*" style="padding:4px 6px;" onchange="previewPhoto(this,'add-cover-preview')">
+            <div id="add-cover-preview" style="margin-top:4px;"></div>
           </div>
 
           <div class="fg">
@@ -492,6 +493,58 @@ function hideMsg(elId) {
 function parseRegistered(listRaw) {
   if (!listRaw) return [];
   return listRaw.split(",").map(s => s.trim()).filter(Boolean);
+}
+
+// ── 圖片上傳工具 ─────────────────────────────────────────────
+
+/** 將 File 物件上傳到 GAS → Google Drive，回傳公開網址 */
+async function uploadImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async function () {
+      try {
+        const base64Full = reader.result;
+        const [header, base64Data] = base64Full.split(",");
+        const mimeType = header.match(/:(.*?);/)[1];
+        const ext = mimeType.split("/")[1] || "jpg";
+        const fileName = `theme_${Date.now()}.${ext}`;
+
+        const res = await fetch(CONFIG.GAS_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            source: "admin",
+            action: "uploadImage",
+            base64: base64Data,
+            mimeType: mimeType,
+            fileName: fileName,
+          }),
+        });
+        if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || "上傳失敗");
+        resolve(data.url);
+      } catch (e) {
+        reject(e);
+      }
+    };
+    reader.onerror = () => reject(new Error("讀取檔案失敗"));
+    reader.readAsDataURL(file);
+  });
+}
+
+/** 圖片預覽 */
+function previewPhoto(input, previewId) {
+  const preview = document.getElementById(previewId);
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      preview.innerHTML = `<img src="${e.target.result}" style="max-width:120px;max-height:80px;border-radius:6px;border:0.5px solid var(--border);">`;
+    };
+    reader.readAsDataURL(input.files[0]);
+  } else {
+    preview.innerHTML = "";
+  }
 }
 
 // ── 全域狀態 ─────────────────────────────────────────────────
@@ -999,7 +1052,7 @@ async function submitAddTheme() {
   const status   = document.getElementById("add-status").value;
   const capacity = parseInt(document.getElementById("add-capacity").value) || 8;
   const deduct   = parseFloat(document.getElementById("add-deduct").value) || 2;
-  const cover    = document.getElementById("add-cover").value.trim();
+  const coverFile = document.getElementById("add-cover").files[0] || null;
   const desc     = document.getElementById("add-desc").value.trim();
 
   if (!name)     { showErr("add-err", "請填寫課程名稱"); return; }
@@ -1010,6 +1063,15 @@ async function submitAddTheme() {
   btn.textContent = "建立中…";
 
   try {
+    // 如果有選圖片，先上傳到 Google Drive
+    let cover = "";
+    if (coverFile) {
+      btn.textContent = "上傳圖片中…";
+      cover = await uploadImageFile(coverFile);
+    }
+
+    btn.textContent = "建立中…";
+
     const props = {
       "課程名稱":  { title: [{ text: { content: name } }] },
       "日期時間":  { date: { start: datetime } },
@@ -1026,7 +1088,9 @@ async function submitAddTheme() {
     document.getElementById("add-success").style.display = "";
 
     // 清空表單
-    ["add-name","add-datetime","add-cover","add-desc"].forEach(id => document.getElementById(id).value = "");
+    ["add-name","add-datetime","add-desc"].forEach(id => document.getElementById(id).value = "");
+    document.getElementById("add-cover").value = "";
+    document.getElementById("add-cover-preview").innerHTML = "";
     document.getElementById("add-capacity").value = "8";
     document.getElementById("add-deduct").value = "2";
     document.getElementById("add-status").value = "開放";
