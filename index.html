@@ -386,6 +386,13 @@ async function loadHeroSlides() {
       const p = row.properties;
       const title = p["標題"]?.title?.[0]?.text?.content || "無標題";
       const sub   = p["副標題"]?.rich_text?.[0]?.text?.content || "";
+      const cover = p["封面圖連結"]?.url || "";
+      
+      const slide = document.createElement("div");
+      // 用餘數決定背景類別
+      slide.className = "hero-slide hs" + ((i % 3) + 1);
+      slide.onclick = () => heroClick(i);
+
       let slideInner = '';
       if (cover) {
         // 如果有封面圖，加上從底部的深色漸層，並將文字對齊左下方
