@@ -359,6 +359,21 @@ let myChildren   = [];     // 家長名下孩子
 let myParentId   = null;
 const lineUID    = getLineUID();
 
+function getImgUrl(url) {
+  if (!url) return "";
+  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (match) return `https://drive.google.com/uc?id=${match[1]}&export=download`;
+  return url;
+}
+
+function formatDate(dStr) {
+  if (!dStr) return "";
+  const d = new Date(dStr);
+  if (isNaN(d)) return dStr;
+  const W = ["日","一","二","三","四","五","六"];
+  return `${d.getMonth()+1}/${d.getDate()} (週${W[d.getDay()]}) ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
 // ── 輪播 (動態載入) ──────────────────────────────────────────────────────
 let hIdx = 0;
 let heroSlidesData = [];
@@ -386,7 +401,7 @@ async function loadHeroSlides() {
       const p = row.properties;
       const title = p["標題"]?.title?.[0]?.text?.content || "無標題";
       const sub   = p["副標題"]?.rich_text?.[0]?.text?.content || "";
-      const cover = p["封面圖連結"]?.url || "";
+      const cover = getImgUrl(p["封面圖連結"]?.url || "");
       
       const slide = document.createElement("div");
       // 用餘數決定背景類別
@@ -573,14 +588,14 @@ async function loadThemeReal() {
 
 function renderThemesSlider(rows) {
   const area = document.getElementById("theme-area");
-  let trackHtml = `<div class="t-track" id="tTrack" style="display:flex; transition:transform .4s ease;">`;
+  let trackHtml = `<div class="t-track" id="tTrack" style="display:flex; transition:transform .4s ease; width:${rows.length * 100}%;">`;
   
   rows.forEach((themeObj, i) => {
     const p     = themeObj.properties;
     const name  = p["課程名稱"]?.title?.[0]?.text?.content || "";
     const dStr  = p["日期時間"]?.date?.start || "";
     const desc  = p["課程說明"]?.rich_text?.[0]?.text?.content || "";
-    const imgUrl= p["封面圖連結"]?.url || "";
+    const imgUrl= getImgUrl(p["封面圖連結"]?.url || "");
     const deduct= p["扣除堂數"]?.number || 1;
     const cap   = p["名額上限"]?.number || 0;
     const listR = p["報名名單"]?.rich_text?.[0]?.text?.content || "";
@@ -589,7 +604,7 @@ function renderThemesSlider(rows) {
     const pct   = cap>0 ? Math.round(reged/cap*100) : 0;
 
     trackHtml += `
-      <div class="t-slide" style="min-width:100%; flex-shrink:0; padding:2px;">
+      <div class="t-slide" style="width:${100 / rows.length}%; flex-shrink:0; padding:2px;">
         <div class="card" style="box-shadow:0 1px 5px rgba(0,0,0,0.05); margin-bottom:4px;">
           <div class="img-car">
             <div class="img-track">
