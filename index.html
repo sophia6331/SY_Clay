@@ -1,595 +1,1712 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SY 兒童手作教室</title>
-<style>
-/* [Bug 1] hero-slide gap 縮小 50%（原本 8px → 4px） */
-.hero-slide { gap: 4px !important; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SY 兒童手作教室</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-/* [Bug 2] hero 背景圖顯示 */
-.hero-track,
-.hero-slide {
-  background-size: cover !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-}
-*{box-sizing:border-box;margin:0;padding:0;}
-:root{
-  --sage:#9AAF9F;--sage-l:#E3EDE5;--sage-m:#B5C9BA;--sage-t:#3A5440;
-  --rose:#C4A29E;--rose-l:#EFE4E2;--rose-t:#6B4845;
-  --sand:#C2B49A;--sand-l:#EDE6DB;--sand-t:#5C4E38;
-  --bg:#fff;--bg2:#f8f7f5;--border:rgba(0,0,0,0.1);
-  --text:#1a1a1a;--text2:#6b6b6b;--text3:#aaa;
-  --r-md:8px;--r-lg:14px;
-}
-body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);}
-.page{max-width:430px;margin:0 auto;background:var(--bg);min-height:100vh;}
-.nav{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;background:var(--bg);border-bottom:0.5px solid var(--border);position:sticky;top:0;z-index:100;}
-.nav-logo{display:flex;align-items:center;gap:8px;}
-.nav-title{font-size:13px;font-weight:500;}
-.nav-links{display:flex;gap:14px;}
-.nl{font-size:13px;color:var(--text2);cursor:pointer;border:none;background:transparent;font-family:inherit;padding:0;text-decoration:none;display:inline-block;}
-.nl.on{color:var(--sage);font-weight:500;border-bottom:1.5px solid var(--sage);padding-bottom:1px;}
-.sec{padding:16px 16px 0;}
-.sec-lbl{font-size:10px;font-weight:500;color:var(--sand);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;}
-.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:14px;}
-.fl{font-size:11px;color:var(--text2);margin-bottom:4px;display:block;}
-.fi{width:100%;border:0.5px solid var(--border);border-radius:var(--r-md);padding:8px 10px;font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;}
-.fi:focus{outline:none;border-color:var(--sage);}
-.fg{margin-bottom:10px;}
-.frow2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
-.btn-main{width:100%;background:var(--sage);color:#fff;border:none;border-radius:var(--r-md);padding:11px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;}
-.btn-main:disabled{opacity:.5;cursor:not-allowed;}
-.btn-ghost{width:100%;background:transparent;color:var(--sage);border:1px solid var(--sage-m);border-radius:var(--r-md);padding:9px;font-size:12px;cursor:pointer;font-family:inherit;margin-bottom:6px;}
-.btn-sm{background:transparent;color:var(--sage);border:0.5px solid var(--sage-m);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:inherit;}
-.cancel-lnk{display:block;text-align:center;font-size:11px;color:var(--text3);cursor:pointer;text-decoration:underline;padding:3px;}
-.divline{height:0.5px;background:var(--border);margin:10px 0;}
-.loading{text-align:center;padding:16px;font-size:12px;color:var(--text3);}
-.err-box{background:#fce8e8;color:#a32d2d;border-radius:var(--r-md);padding:8px 12px;font-size:12px;margin-bottom:10px;}
-.ok-box{background:var(--sage-l);color:var(--sage-t);border-radius:var(--r-md);padding:8px 12px;font-size:12px;margin-bottom:10px;}
-.tag{display:inline-block;font-size:11px;border-radius:5px;padding:3px 8px;}
-.tag.sage{background:var(--sage-l);color:var(--sage-t);}
-.tag.rose{background:var(--rose-l);color:var(--rose-t);}
-.tag.sand{background:var(--sand-l);color:var(--sand-t);}
-.pbar-wrap{display:flex;align-items:center;gap:8px;}
-.pbar{flex:1;height:3px;background:var(--sage-l);border-radius:2px;overflow:hidden;}
-.pfill{height:100%;background:var(--sage);border-radius:2px;}
-.line-block{display:flex;align-items:center;gap:12px;padding:13px 15px;background:#06C755;border-radius:var(--r-lg);margin-bottom:14px;}
-.line-qr{width:62px;height:62px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
-.line-txt strong{display:block;font-size:13px;color:#fff;font-weight:500;margin-bottom:3px;}
-.line-txt p{font-size:12px;color:rgba(255,255,255,.9);line-height:1.6;}
-.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:999;display:none;align-items:flex-end;justify-content:center;}
-.modal-ov.show{display:flex;}
-.modal-box{background:var(--bg);border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:430px;}
-.modal-title{font-size:15px;font-weight:600;text-align:center;margin-bottom:8px;line-height:1.5;}
-.modal-desc{font-size:13px;color:var(--text2);text-align:center;line-height:1.7;margin-bottom:20px;}
-.modal-btns{display:flex;flex-direction:column;gap:8px;}
-.modal-btn-main{width:100%;background:var(--sage);color:#fff;border:none;border-radius:var(--r-md);padding:12px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;}
-.modal-btn-sec{width:100%;background:transparent;color:var(--text2);border:1px solid var(--border);border-radius:var(--r-md);padding:11px;font-size:13px;cursor:pointer;font-family:inherit;}
-.about-block{background:var(--sand-l);border-radius:var(--r-lg);padding:16px;margin-bottom:14px;}
-.about-title{font-size:14px;font-weight:500;color:var(--sand-t);margin-bottom:6px;}
-.about-body{font-size:13px;color:var(--sand-t);line-height:1.8;opacity:.85;}
-.slot-hint{font-size:11px;padding:5px 8px;border-radius:6px;margin-top:4px;}
-.slot-hint.ok{background:var(--sage-l);color:var(--sage-t);}
-.slot-hint.warn{background:#faeeda;color:#854f0b;}
-.slot-hint.full{background:#fce8e8;color:#a32d2d;}
-.bind-notice{border:0.5px solid var(--border);border-radius:var(--r-lg);padding:20px 16px;text-align:center;margin-bottom:14px;}
-.bind-notice p{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:14px;}
-.note-tog{display:inline-flex;align-items:center;gap:5px;cursor:pointer;background:transparent;border:none;font-family:inherit;color:var(--text2);font-size:12px;margin-bottom:8px;padding:0;}
-.note-ico{width:16px;height:16px;border-radius:4px;background:var(--sage-l);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--sage-t);}
-.note-field{display:none;margin-bottom:8px;}.note-field.show{display:block;}
-.child-static{font-size:13px;padding:8px 10px;background:var(--sage-l);border-radius:var(--r-md);color:var(--sage-t);margin-bottom:10px;}
-.success-box{text-align:center;padding:14px 0 8px;}
-.ok-icon{font-size:26px;margin-bottom:6px;}
-.ok-msg{font-size:14px;font-weight:500;margin-bottom:3px;}
-.ok-sub{font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;}
-.reg-toggle-btn{font-size:12px;color:var(--sage);background:var(--sage-l);border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-family:inherit;margin-left:8px;}
-.reg-form-wrap{display:none;margin-top:10px;}.reg-form-wrap.show{display:block;}
-.cb-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
-.cb{width:14px;height:14px;accent-color:var(--sage);cursor:pointer;}
-.sch-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;}
-.sch-item{background:var(--bg2);border-radius:var(--r-md);padding:9px 10px;}
-.sch-day{font-size:11px;color:var(--text2);margin-bottom:2px;}
-.sch-time{font-size:12px;font-weight:500;color:var(--text);}
-.price-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg2);border-radius:var(--r-md);margin-bottom:6px;}
-.price-item.feat{background:var(--sage-l);}
-.p-name{font-size:13px;font-weight:500;}.p-name.feat{color:var(--sage-t);}
-.p-sub{font-size:11px;color:var(--text2);}
-.p-price{font-size:15px;font-weight:500;}.p-price.feat{color:var(--sage);}
-.badge-sm{font-size:10px;background:var(--sage);color:#fff;border-radius:3px;padding:1px 5px;margin-left:4px;vertical-align:middle;}
-.pay-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);}
-.pay-row:last-child{border-bottom:none;}
-.pay-ico{width:26px;height:26px;background:var(--bg2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;}
+    :root {
+      --sage: #9AAF9F;
+      --sage-l: #E3EDE5;
+      --sage-m: #B5C9BA;
+      --sage-t: #3A5440;
+      --rose: #C4A29E;
+      --rose-l: #EFE4E2;
+      --rose-t: #6B4845;
+      --sand: #C2B49A;
+      --sand-l: #EDE6DB;
+      --sand-t: #5C4E38;
+      --bg: #fff;
+      --bg2: #f8f7f5;
+      --border: rgba(0, 0, 0, 0.1);
+      --text: #1a1a1a;
+      --text2: #6b6b6b;
+      --text3: #aaa;
+      --r-md: 8px;
+      --r-lg: 14px;
+    }
 
-/* hero */
-.hero-wrap{position:relative;width:100%;overflow:hidden;}
-.hero-track{display:flex;transition:transform .42s cubic-bezier(.4,0,.2,1);}
-.hero-slide{min-width:100%;height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;position:relative;}
-/* 修正背景被覆蓋：改用 background-color */
-.hs1{background-color:var(--rose-l);}.hs2{background-color:var(--sand-l);}.hs3{background-color:var(--sage-l);}
-.s-icon{font-size:38px;}
-.s-title{
-  font-size:16px;
-  font-weight:500;
-  margin-top:4px; /* 將標題向下推 */
-  margin-bottom:-2px; /* 抵消 gap 的距離，使其與下方子標題更近 */
-}
-.hs1 .s-title{color:var(--rose-t);}.hs2 .s-title{color:var(--sand-t);}.hs3 .s-title{color:var(--sage-t);}
-.s-sub{font-size:12px;}
-.hs1 .s-sub{color:var(--rose);}.hs2 .s-sub{color:var(--sand);}.hs3 .s-sub{color:var(--sage);}
-.s-cta{position:absolute;bottom:10px;right:14px;font-size:11px;background:rgba(255,255,255,.5);border-radius:10px;padding:2px 9px;}
-.hs1 .s-cta{color:var(--rose-t);}.hs2 .s-cta{color:var(--sand-t);}.hs3 .s-cta{color:var(--sage-t);}
-.h-arrows{position:absolute;top:50%;transform:translateY(-50%);width:100%;display:flex;justify-content:space-between;padding:0 10px;pointer-events:none;}
-.h-arrow{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.5);border:none;font-size:13px;cursor:pointer;pointer-events:all;color:var(--text2);}
-.hdots{display:flex;justify-content:center;gap:5px;padding:8px 0;}
-.dot{width:5px;height:5px;border-radius:50%;background:var(--rose-l);cursor:pointer;transition:all .3s;opacity:.6;}
-.dot.on{background:var(--sage);width:16px;border-radius:3px;opacity:1;}
-.img-car{overflow:hidden;border-radius:10px;margin-bottom:8px;}
-.img-track{display:flex;transition:transform .35s ease;}
-.img-slide{min-width:100%;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;background:var(--rose-l);}
-.idots{display:flex;justify-content:center;gap:4px;padding:5px 0;}
-.idot{width:4px;height:4px;border-radius:50%;background:var(--rose);cursor:pointer;opacity:.4;}
-.idot.on{width:12px;border-radius:2px;opacity:1;}
-.theme-big-title{font-size:17px;font-weight:500;color:var(--text);margin-bottom:10px;}
-.desc-block{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:10px;white-space:pre-line;}
-</style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .page {
+      max-width: 430px;
+      margin: 0 auto;
+      background: var(--bg);
+      min-height: 100vh;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 16px;
+      background: var(--bg);
+      border-bottom: 0.5px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-title {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 14px;
+    }
+
+    .nl {
+      font-size: 13px;
+      color: var(--text2);
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      padding: 0;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .nl.on {
+      color: var(--sage);
+      font-weight: 500;
+      border-bottom: 1.5px solid var(--sage);
+      padding-bottom: 1px;
+    }
+
+    .sec {
+      padding: 16px 16px 0;
+    }
+
+    .sec-lbl {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--sand);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .card {
+      background: var(--bg);
+      border: 0.5px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+
+    .fl {
+      font-size: 11px;
+      color: var(--text2);
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .fi {
+      width: 100%;
+      border: 0.5px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 8px 10px;
+      font-size: 13px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+    }
+
+    .fi:focus {
+      outline: none;
+      border-color: var(--sage);
+    }
+
+    .fg {
+      margin-bottom: 10px;
+    }
+
+    .frow2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .btn-main {
+      width: 100%;
+      background: var(--sage);
+      color: #fff;
+      border: none;
+      border-radius: var(--r-md);
+      padding: 11px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .btn-main:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .btn-ghost {
+      width: 100%;
+      background: transparent;
+      color: var(--sage);
+      border: 1px solid var(--sage-m);
+      border-radius: var(--r-md);
+      padding: 9px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      margin-bottom: 6px;
+    }
+
+    .btn-sm {
+      background: transparent;
+      color: var(--sage);
+      border: 0.5px solid var(--sage-m);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .cancel-lnk {
+      display: block;
+      text-align: center;
+      font-size: 11px;
+      color: var(--text3);
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 3px;
+    }
+
+    .divline {
+      height: 0.5px;
+      background: var(--border);
+      margin: 10px 0;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 16px;
+      font-size: 12px;
+      color: var(--text3);
+    }
+
+    .err-box {
+      background: #fce8e8;
+      color: #a32d2d;
+      border-radius: var(--r-md);
+      padding: 8px 12px;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+
+    .ok-box {
+      background: var(--sage-l);
+      color: var(--sage-t);
+      border-radius: var(--r-md);
+      padding: 8px 12px;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      border-radius: 5px;
+      padding: 3px 8px;
+    }
+
+    .tag.sage {
+      background: var(--sage-l);
+      color: var(--sage-t);
+    }
+
+    .tag.rose {
+      background: var(--rose-l);
+      color: var(--rose-t);
+    }
+
+    .tag.sand {
+      background: var(--sand-l);
+      color: var(--sand-t);
+    }
+
+    .pbar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pbar {
+      flex: 1;
+      height: 3px;
+      background: var(--sage-l);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .pfill {
+      height: 100%;
+      background: var(--sage);
+      border-radius: 2px;
+    }
+
+    .line-block {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 15px;
+      background: #06C755;
+      border-radius: var(--r-lg);
+      margin-bottom: 14px;
+    }
+
+    .line-qr {
+      width: 62px;
+      height: 62px;
+      background: #fff;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .line-txt strong {
+      display: block;
+      font-size: 13px;
+      color: #fff;
+      font-weight: 500;
+      margin-bottom: 3px;
+    }
+
+    .line-txt p {
+      font-size: 12px;
+      color: rgba(255, 255, 255, .9);
+      line-height: 1.6;
+    }
+
+    .modal-ov {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .4);
+      z-index: 999;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .modal-ov.show {
+      display: flex;
+    }
+
+    .modal-box {
+      background: var(--bg);
+      border-radius: 20px 20px 0 0;
+      padding: 24px 20px 36px;
+      width: 100%;
+      max-width: 430px;
+    }
+
+    .modal-title {
+      font-size: 15px;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+
+    .modal-desc {
+      font-size: 13px;
+      color: var(--text2);
+      text-align: center;
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+
+    .modal-btns {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .modal-btn-main {
+      width: 100%;
+      background: var(--sage);
+      color: #fff;
+      border: none;
+      border-radius: var(--r-md);
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .modal-btn-sec {
+      width: 100%;
+      background: transparent;
+      color: var(--text2);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 11px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .about-block {
+      background: var(--sand-l);
+      border-radius: var(--r-lg);
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .about-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--sand-t);
+      margin-bottom: 6px;
+    }
+
+    .about-body {
+      font-size: 13px;
+      color: var(--sand-t);
+      line-height: 1.8;
+      opacity: .85;
+    }
+
+    .slot-hint {
+      font-size: 11px;
+      padding: 5px 8px;
+      border-radius: 6px;
+      margin-top: 4px;
+    }
+
+    .slot-hint.ok {
+      background: var(--sage-l);
+      color: var(--sage-t);
+    }
+
+    .slot-hint.warn {
+      background: #faeeda;
+      color: #854f0b;
+    }
+
+    .slot-hint.full {
+      background: #fce8e8;
+      color: #a32d2d;
+    }
+
+    .bind-notice {
+      border: 0.5px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 20px 16px;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+
+    .bind-notice p {
+      font-size: 13px;
+      color: var(--text2);
+      line-height: 1.7;
+      margin-bottom: 14px;
+    }
+
+    .note-tog {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      font-family: inherit;
+      color: var(--text2);
+      font-size: 12px;
+      margin-bottom: 8px;
+      padding: 0;
+    }
+
+    .note-ico {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      background: var(--sage-l);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: var(--sage-t);
+    }
+
+    .note-field {
+      display: none;
+      margin-bottom: 8px;
+    }
+
+    .note-field.show {
+      display: block;
+    }
+
+    .child-static {
+      font-size: 13px;
+      padding: 8px 10px;
+      background: var(--sage-l);
+      border-radius: var(--r-md);
+      color: var(--sage-t);
+      margin-bottom: 10px;
+    }
+
+    .success-box {
+      text-align: center;
+      padding: 14px 0 8px;
+    }
+
+    .ok-icon {
+      font-size: 26px;
+      margin-bottom: 6px;
+    }
+
+    .ok-msg {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 3px;
+    }
+
+    .ok-sub {
+      font-size: 12px;
+      color: var(--text2);
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+
+    .reg-toggle-btn {
+      font-size: 12px;
+      color: var(--sage);
+      background: var(--sage-l);
+      border: none;
+      border-radius: 6px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-family: inherit;
+      margin-left: 8px;
+    }
+
+    .reg-form-wrap {
+      display: none;
+      margin-top: 10px;
+    }
+
+    .reg-form-wrap.show {
+      display: block;
+    }
+
+    .cb-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .cb {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--sage);
+      cursor: pointer;
+    }
+
+    .sch-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .sch-item {
+      background: var(--bg2);
+      border-radius: var(--r-md);
+      padding: 9px 10px;
+    }
+
+    .sch-day {
+      font-size: 11px;
+      color: var(--text2);
+      margin-bottom: 2px;
+    }
+
+    .sch-time {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .price-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: var(--bg2);
+      border-radius: var(--r-md);
+      margin-bottom: 6px;
+    }
+
+    .price-item.feat {
+      background: var(--sage-l);
+    }
+
+    .p-name {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .p-name.feat {
+      color: var(--sage-t);
+    }
+
+    .p-sub {
+      font-size: 11px;
+      color: var(--text2);
+    }
+
+    .p-price {
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .p-price.feat {
+      color: var(--sage);
+    }
+
+    .badge-sm {
+      font-size: 10px;
+      background: var(--sage);
+      color: #fff;
+      border-radius: 3px;
+      padding: 1px 5px;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
+
+    .pay-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 0.5px solid var(--border);
+    }
+
+    .pay-row:last-child {
+      border-bottom: none;
+    }
+
+    .pay-ico {
+      width: 26px;
+      height: 26px;
+      background: var(--bg2);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+    }
+
+    /* hero */
+    .hero-wrap {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .hero-track {
+      display: flex;
+      transition: transform .42s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    .hero-slide {
+      min-width: 100%;
+      height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .hs1 {
+      background: var(--rose-l);
+    }
+
+    .hs2 {
+      background: var(--sand-l);
+    }
+
+    .hs3 {
+      background: var(--sage-l);
+    }
+
+    .s-icon {
+      font-size: 38px;
+    }
+
+    .s-title {
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .hs1 .s-title {
+      color: var(--rose-t);
+    }
+
+    .hs2 .s-title {
+      color: var(--sand-t);
+    }
+
+    .hs3 .s-title {
+      color: var(--sage-t);
+    }
+
+    .s-sub {
+      font-size: 12px;
+    }
+
+    .hs1 .s-sub {
+      color: var(--rose);
+    }
+
+    .hs2 .s-sub {
+      color: var(--sand);
+    }
+
+    .hs3 .s-sub {
+      color: var(--sage);
+    }
+
+    .s-cta {
+      position: absolute;
+      bottom: 10px;
+      right: 14px;
+      font-size: 11px;
+      background: rgba(255, 255, 255, .5);
+      border-radius: 10px;
+      padding: 2px 9px;
+    }
+
+    .hs1 .s-cta {
+      color: var(--rose-t);
+    }
+
+    .hs2 .s-cta {
+      color: var(--sand-t);
+    }
+
+    .hs3 .s-cta {
+      color: var(--sage-t);
+    }
+
+    .h-arrows {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 10px;
+      pointer-events: none;
+    }
+
+    .h-arrow {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .5);
+      border: none;
+      font-size: 13px;
+      cursor: pointer;
+      pointer-events: all;
+      color: var(--text2);
+    }
+
+    .hdots {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+      padding: 8px 0;
+    }
+
+    .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--rose-l);
+      cursor: pointer;
+      transition: all .3s;
+      opacity: .6;
+    }
+
+    .dot.on {
+      background: var(--sage);
+      width: 16px;
+      border-radius: 3px;
+      opacity: 1;
+    }
+
+    .img-car {
+      overflow: hidden;
+      border-radius: 10px;
+      margin-bottom: 8px;
+    }
+
+    .img-track {
+      display: flex;
+      transition: transform .35s ease;
+    }
+
+    .img-slide {
+      min-width: 100%;
+      aspect-ratio: 16/9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 6px;
+      background: var(--rose-l);
+    }
+
+    .idots {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      padding: 5px 0;
+    }
+
+    .idot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--rose);
+      cursor: pointer;
+      opacity: .4;
+    }
+
+    .idot.on {
+      width: 12px;
+      border-radius: 2px;
+      opacity: 1;
+    }
+
+    .theme-big-title {
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    .desc-block {
+      font-size: 13px;
+      color: var(--text2);
+      line-height: 1.7;
+      margin-bottom: 10px;
+      white-space: pre-line;
+    }
+  </style>
 </head>
+
 <body>
-<div class="page">
+  <div class="page">
 
-<nav class="nav">
-  <div class="nav-logo">
-    <img src="/images/logo.png" style="width:24px;height:auto;display:block;" alt="logo">
-    <span class="nav-title">SY 兒童手作教室</span>
-  </div>
-  <div class="nav-links">
-    <a href="#home" class="nl on" onclick="showTab('home',this)">首頁</a>
-    <a href="#booking" class="nl" onclick="showTab('booking',this)">預約報名</a>
-  </div>
-</nav>
-
-<div id="tab-home" class="tab-content">
-  <div class="hero-wrap">
-    <div class="hero-track" id="heroTrack">
-      <div class="hero-slide hs1" onclick="scrollToTheme(0)">
-        <span class="s-icon">🎨</span>
-        <span class="s-title">讓創意在指尖綻放</span>
-        <span class="s-sub">SY 兒童手作，開啟孩子的無限可能</span>
-        <span class="s-cta">查看本月主題 ➔</span>
+    <nav class="nav">
+      <div class="nav-logo">
+        <img
+          src="/images/logo.png"
+          style="width:30px;height:30px;border-radius:7px;object-fit:contain;" alt="logo">
+        <span class="nav-title" id="nav-studio-name">SY 兒童手作教室</span>
       </div>
-      <div class="hero-slide hs2" onclick="showTab('booking',document.querySelectorAll('.nl')[1])">
-        <span class="s-icon">📅</span>
-        <span class="s-title">精緻小班制教學</span>
-        <span class="s-sub">給予每個孩子最完整的引導與關懷</span>
-        <span class="s-cta">立即預約 ➔</span>
+      <div class="nav-links">
+        <a class="nl on" href="index.html">首頁</a>
+        <a class="nl " href="register.html">報名</a>
+        <a class="nl " href="children.html">孩子</a>
+      </div>
+    </nav>
+
+    <!-- ── 主視覺輪播 ── -->
+    <div class="hero-wrap">
+      <div class="hero-track" id="hTrack">
+        <div style="padding:40px;text-align:center;color:var(--text2);font-size:14px;width:100%;">載入中…</div>
+      </div>
+      <div class="h-arrows">
+        <button class="h-arrow" onclick="hMove(-1)">‹</button>
+        <button class="h-arrow" onclick="hMove(1)">›</button>
       </div>
     </div>
-    <div class="h-arrows">
-      <button class="h-arrow" onclick="moveHero(-1)">❮</button>
-      <button class="h-arrow" onclick="moveHero(1)">❯</button>
-    </div>
-  </div>
-  <div class="hdots" id="heroDots"></div>
+    <div class="hdots" id="hDots"></div>
 
-  <section class="sec" id="theme-sec">
-    <div class="sec-lbl">Monthly Theme / 本月主題</div>
-    <div class="card" id="theme-card">
-      <div class="loading">載入主題資料中…</div>
-    </div>
-  </section>
-
-  <section class="sec">
-    <div class="sec-lbl">Class Schedule / 課程時段</div>
-    <div class="card">
-      <div class="sch-grid">
-        <div class="sch-item"><div class="sch-day">週一至週五</div><div class="sch-time">14:00 - 18:30</div></div>
-        <div class="sch-item"><div class="sch-day">週六、週日</div><div class="sch-time">10:00 - 18:00</div></div>
-      </div>
-      <div class="divline"></div>
-      <p style="font-size:12px;color:var(--text2);line-height:1.6;">
-        ＊實際剩餘名額請點擊「預約報名」查看。<br>
-        ＊每堂課時長約 60-90 分鐘，依作品複雜度而定。
-      </p>
-    </div>
-  </section>
-
-  <section class="sec">
-    <div class="sec-lbl">Pricing / 費用說明</div>
-    <div class="card">
-      <div class="price-item feat">
-        <div>
-          <div class="p-name feat">單堂體驗課 <span class="badge-sm">熱門</span></div>
-          <div class="p-sub">包含所有材料費與指導</div>
+    <!-- ── S1: 主題課程 ── -->
+    <div id="s1-theme">
+      <div class="sec">
+        <div class="sec-lbl">主題課程</div>
+        <div id="theme-area">
+          <div class="loading">載入中…</div>
         </div>
-        <div class="p-price feat">$650</div>
       </div>
-      <div class="price-item">
-        <div>
-          <div class="p-name">四堂優惠套票</div>
-          <div class="p-sub">期限三個月，可跨月使用</div>
+    </div>
+
+    <!-- ── S1 alt: 其他活動介紹 ── -->
+    <div id="s1-other" style="display:none;">
+      <div class="sec">
+        <div class="sec-lbl" id="other-lbl">活動介紹</div>
+        <div class="card" style="text-align:center;padding:22px 16px;">
+          <div style="font-size:34px;margin-bottom:8px;" id="other-icon"></div>
+          <div style="font-size:15px;font-weight:500;margin-bottom:8px;" id="other-name"></div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.7;" id="other-desc"></div>
         </div>
-        <div class="p-price">$2,400</div>
-      </div>
-      <div class="divline"></div>
-      <div class="pay-row">
-        <div class="pay-ico">💳</div>
-        <div style="font-size:12px;">支援現場現金、LINE Pay、轉帳付款</div>
       </div>
     </div>
-  </section>
 
-  <section class="sec">
-    <div class="about-block">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-        <img src="/images/logo.png" style="width:36px;height:auto;border-radius:8px;" alt="logo">
-        <div class="about-title" style="margin-bottom:0;">關於 SY 兒童手作教室</div>
+    <!-- ── S2: 常態課程 ── -->
+    <div class="sec" style="margin-top:4px;">
+      <div style="display:flex;align-items:center;margin-bottom:10px;">
+        <span class="sec-lbl" style="margin-bottom:0;">常態課程</span>
+        <button class="reg-toggle-btn" id="regToggleBtn" onclick="toggleRegForm()">報名</button>
       </div>
-      <div class="about-body">
-        我們相信每個孩子都是天生的藝術家。在 SY，我們不只教技術，更提供一個安全、溫馨的環境，讓孩子透過黏土、繪畫與各種素材，練習專注力，並在完成作品的過程中建立自信。
+      <div class="sch-grid" id="schGrid">
+        <div class="loading" style="grid-column:span 2;">載入中…</div>
       </div>
-    </div>
-  </section>
-
-  <div style="height:40px;"></div>
-</div>
-
-<div id="tab-booking" class="tab-content" style="display:none;">
-  <section class="sec">
-    <div id="reg-status-loading" class="loading">正在確認您的帳號資訊…</div>
-    <div id="reg-form-main" style="display:none;">
-      <div class="sec-lbl">Fast Booking / 快速報名</div>
-      <div id="reg-ok" class="card success-box" style="display:none;">
-        <div class="ok-icon">✅</div>
-        <div class="ok-msg">報名預約已送出</div>
-        <div class="ok-sub">我們已收到 <strong id="reg-name-out"></strong> 的報名，<br>請等待老師與您聯繫確認名額。</div>
-        <button class="btn-sm" onclick="resetReg()">再次報名</button>
-      </div>
-      <div id="regBtn-wrap">
-        <div class="card">
+      <div class="reg-form-wrap" id="regWrap">
+        <div class="card" style="margin-top:0;">
           <div id="reg-err" class="err-box" style="display:none;"></div>
           <div class="fg">
-            <span class="fl">選擇孩子</span>
-            <div id="reg-child-sel-wrap"></div>
-          </div>
-          <div class="fg">
-            <span class="fl">報名類型</span>
             <div class="cb-row">
-              <input type="checkbox" id="cbWeekly" class="cb" onchange="toggleWeekly(this.checked)">
-              <label for="cbWeekly" style="font-size:13px;cursor:pointer;">固定每週上課 (不限日期)</label>
+              <input type="checkbox" class="cb" id="cbWeekly" checked onchange="toggleSchMode()">
+              <label for="cbWeekly" style="font-size:13px;cursor:pointer;">每週固定上課</label>
             </div>
-          </div>
-          <div class="frow2" id="dateRow">
-            <div>
-              <span class="fl">選擇日期</span>
-              <input type="date" id="selDate" class="fi" onchange="onDateChange()">
+            <div id="weeklyMode">
+              <label class="fl">星期</label>
+              <select class="fi" id="selDay" onchange="onDayChange()"></select>
             </div>
-            <div>
-              <span class="fl">星期</span>
-              <div id="dn-static" class="fi" style="background:var(--bg2);border-color:transparent;color:var(--text3);">--</div>
+            <div id="dateMode" style="display:none;">
+              <label class="fl">選擇日期</label>
+              <select class="fi" id="selDate" onchange="onDateChange()"></select>
             </div>
           </div>
           <div class="fg">
-            <span class="fl">選擇時段</span>
-            <select id="selSlot" class="fi">
-              <option value="">請先選擇日期</option>
-            </select>
-            <div id="slotHint" style="display:none;"></div>
+            <label class="fl">時段（每堂 1.5 小時）</label>
+            <select class="fi" id="selSlot" onchange="updateHint()"></select>
+            <div class="slot-hint ok" id="slotHint">—</div>
           </div>
-          <button id="regBtn" class="btn-main" onclick="submitReg()">送出報名</button>
+          <div class="fg">
+            <label class="fl">孩子</label>
+            <div id="reg-child-area">
+              <div style="font-size:12px;color:var(--text2);">請先透過 LINE 綁定帳號後才能報名</div>
+            </div>
+          </div>
+          <button class="btn-main" id="regBtn" onclick="submitReg()">送出報名</button>
+          <div id="reg-ok" style="display:none;">
+            <div class="divline"></div>
+            <div class="success-box" style="padding:10px 0 6px;">
+              <div class="ok-icon" style="font-size:20px;">✅</div>
+              <div class="ok-msg" style="font-size:13px;">報名成功！</div>
+              <div class="ok-sub" style="font-size:11px;margin-bottom:8px;">已為 <span id="reg-name-out"></span> 完成報名
+              </div>
+            </div>
+            <button class="btn-ghost" onclick="resetReg()">修改報名</button>
+            <span class="cancel-lnk" onclick="resetReg()">取消報名</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <div id="reg-unbound" style="display:none;">
-      <div class="bind-notice">
-        <p>您尚未透過 LINE 綁定學員帳號，<br>請先加入官方 LINE 以進行報名與查詢。</p>
-        <div class="line-block">
-          <div class="line-qr"><img src="https://qr-official.line.me/gs/M_544kudsm_GW.png?size=m" width="62"></div>
-          <div class="line-txt">
-            <strong>SY 兒童手作教室</strong>
-            <p>ID: @sy_clay<br>加入好友後回傳「手機號碼」即可自動綁定。</p>
+    <!-- ── S3: 費用 ── -->
+    <div class="sec" style="margin-top:6px;">
+      <div class="sec-lbl">課程費用</div>
+      <div id="plans-area">
+        <div class="loading">載入中…</div>
+      </div>
+      <div style="padding:4px 0 12px;">
+        <div class="pay-row">
+          <div class="pay-ico">💵</div>
+          <div>
+            <div style="font-size:13px;">現金</div>
+            <div style="font-size:11px;color:var(--text2);">課堂現場繳交</div>
+          </div>
+        </div>
+        <div class="pay-row">
+          <div class="pay-ico">🏦</div>
+          <div>
+            <div style="font-size:13px;">匯款</div>
+            <div style="font-size:11px;color:var(--text2);">匯款後告知末 5 碼</div>
           </div>
         </div>
       </div>
     </div>
-  </section>
 
-  <section class="sec" id="my-sessions-sec" style="display:none;">
-    <div class="sec-lbl">My Sessions / 報名紀錄</div>
-    <div id="sessions-list"></div>
-  </section>
-  <div style="height:60px;"></div>
-</div>
+    <!-- ── S4: LINE ── -->
+    <div class="sec" style="margin-top:0;">
+      <div class="sec-lbl">加入 LINE · 查詢堂數與照片</div>
+      <div class="line-block">
+        <div class="line-qr" id="lineQR"><span
+            style="font-size:10px;color:#333;text-align:center;line-height:1.4;">QR<br>Code</span></div>
+        <div class="line-txt">
+          <strong id="line-block-title">掃碼加入好友</strong>
+          <p>輸入「綁定 孩子名字 生日」<br>可查詢堂數、收到提醒與照片通知</p>
+        </div>
+      </div>
+    </div>
 
-</div><div class="modal-ov" id="modalOv" onclick="closeModal(event)">
-  <div class="modal-box" onclick="event.stopPropagation()">
-    <div class="modal-title" id="modalTitle">標題</div>
-    <div class="modal-desc" id="modalDesc">內容描述</div>
-    <div class="modal-btns" id="modalBtns"></div>
-    <button class="modal-btn-sec" style="margin-top:8px;" onclick="toggleModal(false)">取消</button>
+    <!-- ── S5: 關於 ── -->
+    <div class="sec" style="padding-top:0;">
+      <div class="about-block">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+          <img
+            src="/images/logo.png"
+            style="width:50px;height:50px;object-fit:contain;flex-shrink:0;" alt="logo">
+          <div class="about-title" style="margin-bottom:0;" id="about-title">關於 SY 兒童手作教室</div>
+        </div>
+        <div class="about-body" id="about-body">由兩位因孩子而被啟發黏土潛力的媽媽創立，我們培養的不只是手作力、創造力，還會透過小小助教與園遊會活動培養負責任與思考力。</div>
+      </div>
+    </div>
+
+  </div><!-- /page -->
+
+  <!-- 取消報名 Modal -->
+  <div class="modal-ov" id="cancelRegModal">
+    <div class="modal-box">
+      <div class="modal-title">確定取消報名？</div>
+      <div class="modal-desc" id="cancel-reg-desc"></div>
+      <div class="modal-btns">
+        <button class="modal-btn-main" style="background:#a32d2d;" onclick="confirmCancelReg()">確定取消</button>
+        <button class="modal-btn-sec"
+          onclick="document.getElementById('cancelRegModal').classList.remove('show')">先不要</button>
+      </div>
+    </div>
   </div>
-</div>
 
-<script>
-// --- Config & State ---
-const LIFF_ID = "2006764510-OAn3j5Vz";
-let profile = null;
-let currentChild = null;
-let themesData = null;
-let heroIdx = 0;
+  <script>
 
-// --- 主題輪播專用變數 ---
-let themeCarouselTimer;
-let currentThemeIdx = 0;
-let totalThemes = 0;
+    // ============================================================
+    // ★ 換教室時只需修改這一行 ★
+    // ============================================================
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbw6PBIUdHTzKBBdbQbRcU-za2rJQtBL6ZEjvJI6z1-NN1ziW1gjTafSdcx8U0E_eRHR/exec";
+    // ============================================================
 
-// --- Initialization ---
-window.onload = async () => {
-  initHero();
-  await loadTheme();
-  try {
-    await liff.init({ liffId: LIFF_ID });
-    if (liff.isLoggedIn()) {
-      profile = await liff.getProfile();
-      await checkBindStatus();
-    } else {
-      showUnbound();
+    /**
+     * 查詢 Notion（GET proxy）
+     * GAS 的 doGet 接收 ?action=query&db=...&filter=...
+     */
+    async function proxyQuery(dbId, filter = null, sorts = null) {
+      const params = new URLSearchParams({ action: "query", db: dbId });
+      if (filter) params.set("filter", JSON.stringify(filter));
+      if (sorts) params.set("sorts", JSON.stringify(sorts));
+      const res = await fetch(`${GAS_URL}?${params}`);
+      if (!res.ok) throw new Error("GAS 回應錯誤 " + res.status);
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "查詢失敗");
+      return data.results || [];
     }
-  } catch (e) { console.error("LIFF init error", e); showUnbound(); }
-};
 
-async function proxyAction(action, params={}) {
-  const res = await fetch("https://script.google.com/macros/s/AKfycby7o09Z5q39_99_Iq-K5S2pWbZ8DOfhXh2-Zt1iU-8Q2vV6Gq-G_uIuD6O9GvY_IuQ/exec", {
-    method: "POST",
-    body: JSON.stringify({ action, userId: profile?.userId, ...params })
-  });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error);
-  return data;
-}
-
-async function checkBindStatus() {
-  document.getElementById("reg-status-loading").style.display = "";
-  try {
-    const info = await proxyAction("getMemberInfo");
-    if (info.bound && info.children && info.children.length > 0) {
-      renderChildSelector(info.children);
-      document.getElementById("reg-form-main").style.display = "";
-      document.getElementById("reg-unbound").style.display = "none";
-      loadSessions();
-    } else {
-      showUnbound();
-    }
-  } catch (e) { showUnbound(); }
-  finally { document.getElementById("reg-status-loading").style.display = "none"; }
-}
-
-function showUnbound() {
-  document.getElementById("reg-unbound").style.display = "";
-  document.getElementById("reg-form-main").style.display = "none";
-}
-
-function renderChildSelector(children) {
-  const wrap = document.getElementById("reg-child-sel-wrap");
-  if (children.length === 1) {
-    wrap.innerHTML = `<div class="child-static" id="reg-child-single" data-id="${children[0].id}">${children[0].name}</div>`;
-  } else {
-    let h = `<select id="reg-child-sel" class="fi">`;
-    children.forEach(c => h += `<option value="${c.id}">${c.name}</option>`);
-    h += `</select>`;
-    wrap.innerHTML = h;
-  }
-}
-
-// --- UI Logic ---
-function showTab(id, el) {
-  document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
-  document.getElementById("tab-" + id).style.display = "block";
-  document.querySelectorAll(".nl").forEach(n => n.classList.remove("on"));
-  el.classList.add("on");
-  window.scrollTo(0, 0);
-}
-function scrollToSec(id) { document.getElementById(id).scrollIntoView({ behavior: "smooth" }); }
-
-// --- Hero ---
-function initHero() {
-  const track = document.getElementById("heroTrack");
-  const dots = document.getElementById("heroDots");
-  const count = track.children.length;
-  for (let i = 0; i < count; i++) {
-    const d = document.createElement("div"); d.className = "dot" + (i === 0 ? " on" : "");
-    d.onclick = () => jumpHero(i);
-    dots.appendChild(d);
-  }
-  setInterval(() => moveHero(1), 5000);
-}
-function moveHero(dir) {
-  const count = document.getElementById("heroTrack").children.length;
-  heroIdx = (heroIdx + dir + count) % count;
-  jumpHero(heroIdx);
-}
-function jumpHero(idx) {
-  heroIdx = idx;
-  document.getElementById("heroTrack").style.transform = `translateX(-${idx * 100}%)`;
-  const ds = document.getElementById("heroDots").children;
-  for (let i = 0; i < ds.length; i++) ds[i].className = "dot" + (i === idx ? " on" : "");
-}
-
-// --- Theme Logic ---
-async function loadTheme() {
-  try {
-    const data = await proxyAction("getMonthlyTheme");
-    themesData = data;
-    const card = document.getElementById("theme-card");
-    card.innerHTML = `
-      <div class="theme-big-title">${data.title}</div>
-      <div class="img-car">
-        <div class="img-track" id="themeTrack">
-          ${data.images.map(img => `<div class="img-slide" style="background-image:url('${img}')!important;background-size:cover;background-position:center;"></div>`).join("")}
-        </div>
-      </div>
-      <div class="idots" id="themeDots"></div>
-      <div class="desc-block">${data.description}</div>
-    `;
-    initThemeCarousel(data.images.length);
-  } catch (e) {
-    document.getElementById("theme-card").innerHTML = "暫無主題資訊";
-  }
-}
-
-function initThemeCarousel(count) {
-  if (count <= 1) return;
-  totalThemes = count;
-  const dots = document.getElementById("themeDots");
-  dots.innerHTML = "";
-  for (let i = 0; i < count; i++) {
-    const d = document.createElement("div"); 
-    d.className = "idot" + (i === 0 ? " on" : "");
-    d.onclick = () => jumpTheme(i);
-    dots.appendChild(d);
-  }
-  currentThemeIdx = 0;
-  startThemeTimer();
-}
-
-function startThemeTimer() {
-  clearInterval(themeCarouselTimer);
-  if (totalThemes <= 1) return;
-  themeCarouselTimer = setInterval(() => {
-    jumpTheme((currentThemeIdx + 1) % totalThemes);
-  }, 3500);
-}
-
-function jumpTheme(idx) {
-  if (totalThemes <= 1) return;
-  currentThemeIdx = idx;
-  const track = document.getElementById("themeTrack");
-  if (track) track.style.transform = `translateX(-${idx * 100}%)`;
-  const ds = document.getElementById("themeDots").children;
-  for (let i = 0; i < ds.length; i++) {
-    ds[i].className = "idot" + (i === idx ? " on" : "");
-  }
-  startThemeTimer(); // 重設計時器，避免點擊後馬上又自動滑走
-}
-
-// 主視覺點擊連動：滑動到區塊並切換主題圖
-function scrollToTheme(idx) {
-  scrollToSec('theme-sec');
-  setTimeout(() => {
-    jumpTheme(idx);
-  }, 300); // 延遲一下確保畫面先順暢滑動到底部再切換圖片
-}
-
-// --- Registration Logic ---
-function toggleWeekly(isWeekly) {
-  document.getElementById("dateRow").style.display = isWeekly ? "none" : "grid";
-  updateSlots();
-}
-function onDateChange() {
-  const d = document.getElementById("selDate").value;
-  const W = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
-  if (!d) { document.getElementById("dn-static").textContent = "--"; return; }
-  const dateObj = new Date(d);
-  document.getElementById("dn-static").textContent = W[dateObj.getDay()];
-  updateSlots();
-}
-function getCurrentDN() {
-  if (document.getElementById("cbWeekly").checked) return null;
-  const d = document.getElementById("selDate").value;
-  if (!d) return null;
-  const dn = new Date(d).getDay();
-  return dn === 0 ? 7 : dn;
-}
-async function updateSlots() {
-  const sel = document.getElementById("selSlot");
-  const hint = document.getElementById("slotHint");
-  const weekly = document.getElementById("cbWeekly").checked;
-  const dateStr = !weekly ? document.getElementById("selDate").value : null;
-  const dn = getCurrentDN();
-
-  if (!weekly && !dateStr) { sel.innerHTML = "<option>請先選擇日期</option>"; return; }
-  
-  sel.disabled = true; sel.innerHTML = "<option>讀取時段中…</option>";
-  try {
-    const slots = await proxyAction("getAvailableSlots", { weekly, dateStr, dayNum: dn });
-    let h = "";
-    slots.forEach(s => {
-      const txt = s.full ? `${s.time} (已額滿)` : `${s.time} (剩餘 ${s.rem} 名)`;
-      h += `<option value="${s.time}" ${s.full ? "disabled" : ""}>${txt}</option>`;
-    });
-    sel.innerHTML = h || "<option>今日無課程時段</option>";
-  } catch (e) { sel.innerHTML = "<option>讀取失敗</option>"; }
-  finally { sel.disabled = false; }
-}
-
-function getMyChild(selId, singleId) {
-  const sel = document.getElementById(selId);
-  if (sel) return { id: sel.value, name: sel.options[sel.selectedIndex].text };
-  const s = document.getElementById(singleId);
-  return s ? { id: s.getAttribute("data-id"), name: s.textContent } : null;
-}
-async function submitReg() {
-  const child = getMyChild("reg-child-sel", "reg-child-single");
-  if (!child) { showErr("reg-err", "請先透過 LINE 綁定帳號"); return; }
-  const dn = getCurrentDN(); const W = ["", "週一", "週二", "週三", "週四", "週五", "週六", "週日"];
-  const slot = document.getElementById("selSlot").value;
-  const weekly = document.getElementById("cbWeekly").checked;
-  const dateStr = !weekly ? document.getElementById("selDate")?.value : null;
-  const btn = document.getElementById("regBtn"); btn.disabled = true; btn.textContent = "送出中…";
-  document.getElementById("reg-err").style.display = "none";
-  try {
-    await proxyAction("registerSession", { childId: child.id, childName: child.name, weekly, dayNum: dn, dayLabel: W[dn], slot, dateStr });
-    document.getElementById("reg-name-out").textContent = child.name;
-    btn.style.display = "none"; document.getElementById("reg-ok").style.display = "";
-    loadSessions();
-  } catch (e) { showErr("reg-err", "報名失敗：" + e.message); }
-  finally { btn.disabled = false; btn.textContent = "送出報名"; }
-}
-function resetReg() {
-  document.getElementById("reg-ok").style.display = "none";
-  document.getElementById("regBtn").style.display = "";
-}
-
-async function loadSessions() {
-  const sec = document.getElementById("my-sessions-sec");
-  const list = document.getElementById("sessions-list");
-  try {
-    const data = await proxyAction("getMySessions");
-    if (data && data.length > 0) {
-      sec.style.display = "block";
-      let h = "";
-      data.forEach(s => {
-        h += `<div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-            <span style="font-size:13px;font-weight:500;color:var(--sage-t);">${s.childName}</span>
-            <span class="tag ${s.weekly ? 'rose' : 'sage'}">${s.weekly ? '每週固定' : '單次報名'}</span>
-          </div>
-          <div style="font-size:12px;margin-top:6px;color:var(--text2);">${s.dateLabel || s.dayLabel} ${s.slot}</div>
-        </div>`;
+    /**
+     * 寫入 Notion（POST proxy）
+     * GAS 的 doPost 接收 {source:"admin", action:"create/update/delete", ...}
+     */
+    async function proxyPost(action, payload) {
+      const res = await fetch(GAS_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "admin", action, ...payload }),
       });
-      list.innerHTML = h;
+      if (!res.ok) throw new Error("GAS 回應錯誤 " + res.status);
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "操作失敗");
+      return data.result;
     }
-  } catch (e) {}
-}
 
-function showErr(id, msg) { const el = document.getElementById(id); el.textContent = msg; el.style.display = "block"; }
+    /**
+     * 公開網站專用 action（報名、取消等）
+     * GAS doPost 需要加對應的 handler（見下方新增的 GAS 程式碼）
+     */
+    async function proxyAction(action, payload) {
+      const res = await fetch(GAS_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "public", action, ...payload }),
+      });
+      if (!res.ok) throw new Error("GAS 回應錯誤 " + res.status);
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "操作失敗");
+      return data;
+    }
 
-function toggleModal(show, title = "", desc = "", btns = []) {
-  const m = document.getElementById("modalOv");
-  if (!show) { m.classList.remove("show"); return; }
-  document.getElementById("modalTitle").textContent = title;
-  document.getElementById("modalDesc").textContent = desc;
-  const bWrap = document.getElementById("modalBtns"); bWrap.innerHTML = "";
-  btns.forEach(b => {
-    const btn = document.createElement("button");
-    btn.className = "modal-btn-main"; btn.textContent = b.text;
-    btn.onclick = () => { b.cb(); toggleModal(false); };
-    bWrap.appendChild(btn);
-  });
-  m.classList.add("show");
-}
-function closeModal(e) { if (e.target.id === "modalOv") toggleModal(false); }
-</script>
+    // ── 日期工具 ─────────────────────────────────────────────────
+    function today() {
+      return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
+    }
+    function daysLater(n) {
+      const d = new Date(); d.setDate(d.getDate() + n);
+      return d.toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
+    }
+    function formatDate(str) {
+      if (!str) return "";
+      const d = new Date(str + "T00:00:00+08:00");
+      const w = ["日", "一", "二", "三", "四", "五", "六"];
+      return `${d.getMonth() + 1}/${d.getDate()}（週${w[d.getDay()]}）`;
+    }
+    function calcAge(b) {
+      if (!b) return "";
+      const bd = new Date(b + "T00:00:00+08:00"), n = new Date();
+      let y = n.getFullYear() - bd.getFullYear(), m = n.getMonth() - bd.getMonth();
+      if (m < 0) { y--; m += 12; } if (n.getDate() < bd.getDate()) m--; if (m < 0) { y--; m += 11; }
+      return `${y}歲${m}個月`;
+    }
+
+    // ── 家長身份識別 ─────────────────────────────────────────────
+    // 公開網站透過 LINE UID 識別家長，UID 存在 localStorage
+    // 家長第一次用 LINE 綁定後，GAS 會在 redirect 時傳入 UID
+    // 或由後台設定（如 URL 參數 ?uid=xxx 供測試）
+    function getLineUID() { return localStorage.getItem("sy_line_uid") || null; }
+    function setLineUID(uid) { localStorage.setItem("sy_line_uid", uid); }
+
+    // 從 URL 參數取得 uid（供 LINE LIFF 或測試用）
+    (function initUID() {
+      const u = new URLSearchParams(location.search).get("uid");
+      if (u) setLineUID(u);
+    })();
+
+
+    // ── 全域快取 ───────────────────────────────────────────────────
+    let appConfig = null;   // 從 GAS 取得的教室設定（studio_name、line_oa_url 等）
+    let currentTheme = null;   // 目前顯示的主題課程
+    let scheduleData = {};    // { dayNum: {start,end,cap,paused,pauseMsg,closed,label} }
+    let myChildren = [];     // 家長名下孩子
+    let myParentId = null;
+    const lineUID = getLineUID();
+
+    function getImgUrl(url) {
+      if (!url) return "";
+      const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (match) return `https://drive.google.com/uc?id=${match[1]}&export=download`;
+      return url;
+    }
+
+    function formatDate(dStr) {
+      if (!dStr) return "";
+      const d = new Date(dStr);
+      if (isNaN(d)) return dStr;
+      const W = ["日", "一", "二", "三", "四", "五", "六"];
+      return `${d.getMonth() + 1}/${d.getDate()} (週${W[d.getDay()]}) ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+
+    // ── 輪播 (動態載入) ──────────────────────────────────────────────────────
+    let hIdx = 0;
+    let heroSlidesData = [];
+
+    async function loadHeroSlides() {
+      const track = document.getElementById("hTrack");
+      const dots = document.getElementById("hDots");
+      try {
+        const rows = await proxyQuery("NOTION_DB_HEROSLIDE",
+          { property: "啟用", checkbox: { equals: true } },
+          [{ property: "排序", direction: "ascending" }]
+        );
+        heroSlidesData = rows;
+
+        if (rows.length === 0) {
+          track.innerHTML = `<div style="padding:40px;text-align:center;width:100%;font-size:14px;color:var(--text2);">目前無相關資訊</div>`;
+          dots.innerHTML = "";
+          return;
+        }
+
+        track.innerHTML = "";
+        dots.innerHTML = "";
+
+        rows.forEach((row, i) => {
+          const p = row.properties;
+          const title = p["標題"]?.title?.[0]?.text?.content || "無標題";
+          const sub = p["副標題"]?.rich_text?.[0]?.text?.content || "";
+          const cover = getImgUrl(p["封面圖連結"]?.url || "");
+
+          const slide = document.createElement("div");
+          // 用餘數決定背景類別
+          slide.className = "hero-slide hs" + ((i % 3) + 1);
+          slide.onclick = () => heroClick(i);
+
+          let slideInner = '';
+          if (cover) {
+            // 如果有封面圖，加上從底部的深色漸層，並將文字對齊左下方
+            slide.style.backgroundImage = `linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0) 60%), url('${cover}')`;
+            slide.style.backgroundPosition = "center";
+            slide.style.backgroundSize = "cover";
+            slide.style.justifyContent = "flex-end";
+            slide.style.alignItems = "flex-start";
+            slide.style.padding = "20px";
+
+            slideInner = `
+          <div class="s-title" style="color:#ffffff; text-shadow:0 1px 4px rgba(0,0,0,0.6); font-size:19px; margin-bottom:4px; z-index:2;">${title}</div>
+          <div class="s-sub" style="color:#eeeeee; text-shadow:0 1px 3px rgba(0,0,0,0.6); font-size:13px; z-index:2;">${sub}</div>
+        `;
+          } else {
+            // 沒有封面圖，純色背景居中顯示
+            slideInner = `
+          <div class="s-title">${title}</div>
+          <div class="s-sub">${sub}</div>
+        `;
+          }
+
+          slide.innerHTML = slideInner;
+          track.appendChild(slide);
+
+          // dot
+          const dot = document.createElement("div");
+          dot.className = "dot" + (i === 0 ? " on" : "");
+          dot.onclick = () => hGo(i);
+          dots.appendChild(dot);
+        });
+
+        // 設定寬度 & 事件
+        const len = rows.length;
+        track.style.width = (len * 100) + "%";
+        Array.from(track.children).forEach(c => {
+          c.style.width = (100 / len) + "%";
+        });
+
+        let s = 0;
+        track.ontouchstart = e => { s = e.touches[0].clientX; };
+        track.ontouchend = e => { const dx = s - e.changedTouches[0].clientX; if (Math.abs(dx) > 40) hMove(dx > 0 ? 1 : -1); };
+
+        hIdx = 0;
+        hRender();
+
+      } catch (e) {
+        track.innerHTML = `<div style="padding:40px;text-align:center;color:#a32d2d;width:100%;">輪播載入失敗</div>`;
+      }
+    }
+
+    function hRender() {
+      const len = heroSlidesData.length || 1;
+      document.getElementById("hTrack").style.transform = `translateX(-${hIdx * (100 / len)}%)`;
+      document.querySelectorAll("#hDots .dot").forEach((d, i) => d.className = "dot" + (i === hIdx ? " on" : ""));
+    }
+    function hMove(d) {
+      const len = heroSlidesData.length || 1;
+      hIdx = (hIdx + d + len) % len;
+      hRender();
+    }
+    function hGo(i) {
+      hIdx = i;
+      hRender();
+    }
+
+    function heroClick(i) {
+      const row = heroSlidesData[i];
+      if (!row) return;
+      const linkType = row.properties["連結類型"]?.select?.name || "一般連結";
+      const url = row.properties["外部連結"]?.url;
+      const themeId = row.properties["主題課程ID"]?.rich_text?.[0]?.text?.content || "";
+
+      if (linkType === "一般連結" && url) {
+        if (url.startsWith("http")) {
+          window.open(url, "_blank");
+        } else if (url.startsWith("#")) {
+          document.getElementById("s1-other").style.display = "none";
+          document.getElementById("s1-theme").style.display = "";
+          const el = document.querySelector(url);
+          if (el) el.scrollIntoView({ behavior: "smooth" });
+        } else {
+          location.href = url;
+        }
+      } else if (linkType === "主題課程") {
+        // 切換到對應的主題課程並捲動
+        document.getElementById("s1-other").style.display = "none";
+        document.getElementById("s1-theme").style.display = "";
+
+        if (themeId && typeof allOpenThemes !== 'undefined' && allOpenThemes.length > 0) {
+          // 嘗試找到對應的主題課程並切換至該 Slide
+          const targetIdx = allOpenThemes.findIndex(t => t.id.replace(/-/g, '') === themeId.replace(/-/g, '')) > -1 ?
+            allOpenThemes.findIndex(t => t.id.replace(/-/g, '') === themeId.replace(/-/g, '')) :
+            allOpenThemes.findIndex(t => t.id === themeId);
+          if (targetIdx > -1) {
+            if (typeof tGo === 'function') tGo(targetIdx);
+          }
+        }
+
+        document.getElementById("s1-theme").scrollIntoView({ behavior: "smooth" });
+      } else {
+        // 預設將這則 Slide 的資訊更新到底下的「活動介紹」區塊並捲動
+        document.getElementById("s1-other").style.display = "";
+        document.getElementById("s1-theme").style.display = "none";
+        document.getElementById("other-icon").textContent = row.properties["圖示"]?.rich_text?.[0]?.text?.content || "🖼️";
+        document.getElementById("other-name").textContent = row.properties["標題"]?.title?.[0]?.text?.content || "";
+        document.getElementById("other-desc").textContent = row.properties["副標題"]?.rich_text?.[0]?.text?.content || "";
+        document.getElementById("other-lbl").textContent = row.properties["標題"]?.title?.[0]?.text?.content || "";
+        document.getElementById("s1-other").scrollIntoView({ behavior: "smooth" });
+      }
+    }
+
+    // ── 從 GAS 取得教室設定 ──────────────────────────────────────
+    // GAS doGet?action=getConfig 回傳 {studio_name, line_oa_url, line_qr_url}
+    // 若你的 GAS 還沒有這個 action，見下方的 GAS 新增說明
+    async function loadConfig() {
+      try {
+        const res = await fetch(`${GAS_URL}?action=getConfig`);
+        const data = await res.json();
+        if (data.ok) {
+          appConfig = data.config;
+          // 更新 UI 中的教室名稱
+          if (appConfig.studio_name) {
+            document.querySelectorAll("#nav-studio-name, #about-title")
+              .forEach(el => { if (el.id === "about-title") el.textContent = "關於 " + appConfig.studio_name; else el.textContent = appConfig.studio_name; });
+            document.title = appConfig.studio_name;
+          }
+          // LINE QR Code
+          if (appConfig.line_qr_url) {
+            document.getElementById("lineQR").innerHTML =
+              `<img src="${appConfig.line_qr_url}" style="width:62px;height:62px;object-fit:contain;" alt="LINE QR">`;
+          }
+          // LINE OA 連結（存起來供報名頁用）
+          if (appConfig.line_oa_url) localStorage.setItem("sy_line_oa_url", appConfig.line_oa_url);
+        }
+      } catch (e) { console.warn("loadConfig failed, using defaults:", e); }
+    }
+
+    // ── 主題課程 ─────────────────────────────────────────────────
+    async function loadTheme() {
+      const area = document.getElementById("theme-area");
+      try {
+        const rows = await proxyQuery(null, { property: "報名狀態", select: { equals: "開放" } }, [{ "property": "日期時間", "direction": "ascending" }]);
+        // proxyQuery 第一參數 null 表示從 GAS 的 doGet 取得已設好的 DB ID
+        // → 實際上傳遞 db 給 GAS，GAS 會用 CONFIG.NOTION_DB_THEME
+        // 見下方 GAS 新增說明
+      } catch (e) {
+        area.innerHTML = `<div class="err-box">主題課程載入失敗</div>`;
+        return;
+      }
+    }
+
+    // ── 真正的資料載入：改用正確的 dbId ──────────────────────────
+    // GAS doGet 不知道哪個是 THEME db，所以前端傳 db 名稱，
+    // GAS 用 CONFIG[db] 對應。做法：db 參數傳 "NOTION_DB_THEME" 等 key name
+    let allOpenThemes = [];
+    let tIdx = 0;
+    let tDataCount = 0;
+
+    async function loadThemeReal() {
+      const area = document.getElementById("theme-area");
+      try {
+        const rows = await proxyQuery("NOTION_DB_THEME",
+          { property: "報名狀態", select: { equals: "開放" } },
+          [{ "property": "日期時間", "direction": "ascending" }]
+        );
+        if (rows.length === 0) {
+          area.innerHTML = "<div style='font-size:13px;color:var(--text2);padding:10px 0;'>目前沒有開放中的主題課程</div>";
+          return;
+        }
+        allOpenThemes = rows;
+        tDataCount = rows.length;
+        renderThemesSlider(rows);
+      } catch (e) {
+        area.innerHTML = `<div class="err-box">主題課程載入失敗：${e.message}</div>`;
+      }
+    }
+
+    function renderThemesSlider(rows) {
+      const area = document.getElementById("theme-area");
+      let trackHtml = `<div class="t-track" id="tTrack" style="display:flex; transition:transform .4s ease; width:${rows.length * 100}%;">`;
+
+      rows.forEach((themeObj, i) => {
+        const p = themeObj.properties;
+        const name = p["課程名稱"]?.title?.[0]?.text?.content || "";
+        const dStr = p["日期時間"]?.date?.start || "";
+        const desc = p["課程說明"]?.rich_text?.[0]?.text?.content || "";
+        const imgUrl = getImgUrl(p["封面圖連結"]?.url || "");
+        const deduct = p["扣除堂數"]?.number || 1;
+        const cap = p["名額上限"]?.number || 0;
+        const listR = p["報名名單"]?.rich_text?.[0]?.text?.content || "";
+        const reged = listR ? listR.split(",").map(s => s.trim()).filter(Boolean).length : 0;
+        const full = cap > 0 && reged >= cap;
+        const pct = cap > 0 ? Math.round(reged / cap * 100) : 0;
+
+        trackHtml += `
+      <div class="t-slide" style="width:${100 / rows.length}%; flex-shrink:0; padding:2px;">
+        <div class="card" style="box-shadow:0 1px 5px rgba(0,0,0,0.05); margin-bottom:4px;">
+          <div class="img-car">
+            <div class="img-track">
+              <div class="img-slide" style="background:var(--rose-l);">
+                ${imgUrl ? `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;" alt="${name}" onerror="this.style.display='none'">` : `<div style="font-size:32px;">💐</div><div style="font-size:12px;font-weight:500;color:var(--rose-t);">${name}</div>`}
+              </div>
+            </div>
+          </div>
+          <div class="theme-big-title" style="margin-top:12px;">${name}</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">
+            ${dStr ? `<span class="tag sage">${formatDate(dStr)}</span>` : ""}
+            <span class="tag sand">扣 ${deduct} 堂課</span>
+          </div>
+          ${desc ? `<div class="desc-block">${desc}</div>` : ""}
+          <div class="pbar-wrap" style="margin-bottom:12px;">
+            <span style="font-size:12px;color:var(--text2);">剩餘名額：<strong style="color:var(--sage-t);">${cap - reged}</strong> / ${cap}</span>
+            <div class="pbar"><div class="pfill" style="width:${pct}%;"></div></div>
+          </div>
+          ${full
+            ? `<div style="text-align:center;padding:10px;font-size:13px;color:var(--text2);background:var(--bg2);border-radius:var(--r-md);">名額已滿，感謝踴躍報名</div>`
+            : `<div id="tf-err-${i}" class="err-box" style="display:none;"></div>
+               <div id="tf-form-${i}">
+                 <div class="fg">
+                   <label class="fl">孩子</label>
+                   <div id="tf-child-area-${i}"><div style="font-size:12px;color:var(--text2);">載入中…</div></div>
+                 </div>
+                 <button class="note-tog" onclick="toggleNote(${i})">
+                   <div class="note-ico" id="note-ico-${i}">＋</div><span>新增備註</span>
+                 </button>
+                 <div class="note-field" id="note-field-${i}"><input class="fi" id="tf-note-${i}" placeholder=""></div>
+                 <button class="btn-main" id="tf-btn-${i}" onclick="submitTheme(${i})">報名主題課程</button>
+               </div>
+               <div id="tf-ok-${i}" style="display:none;">
+                 <div class="success-box">
+                   <div class="ok-icon">✅</div>
+                   <div class="ok-msg">報名成功！</div>
+                   <div class="ok-sub">已為 <span id="tf-name-out-${i}"></span> 完成報名<br>課程前會透過 LINE 提醒</div>
+                 </div>
+                 <button class="btn-ghost" onclick="resetTheme(${i})">修改報名</button>
+                 <span class="cancel-lnk" onclick="cancelTheme(${i})">取消報名</span>
+               </div>`
+          }
+        </div>
+      </div>`;
+      });
+      trackHtml += `</div>`;
+
+      let dotsHtml = `<div class="tdots" id="tDots" style="display:flex; justify-content:center; gap:5px; padding:6px 0; margin-top:2px;">`;
+      rows.forEach((_, i) => {
+        dotsHtml += `<div class="dot${i === 0 ? ' on' : ''}" onclick="tGo(${i})" style="width:5px;height:5px;border-radius:50%;background:var(--sand-l);cursor:pointer;transition:all .3s;"></div>`;
+      });
+      dotsHtml += `</div>`;
+
+      area.innerHTML = `
+    <div style="position:relative; width:100%; overflow:hidden;" id="tWrap">
+      ${trackHtml}
+      ${rows.length > 1 ? `
+      <div style="position:absolute; top:35%; transform:translateY(-50%); width:100%; display:flex; justify-content:space-between; pointer-events:none; padding:0 0px;">
+        <button onclick="tMove(-1)" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.8);border:none;pointer-events:all;box-shadow:0 1px 3px rgba(0,0,0,0.1);color:var(--text2);cursor:pointer;font-size:12px;font-weight:bold;">‹</button>
+        <button onclick="tMove(1)" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.8);border:none;pointer-events:all;box-shadow:0 1px 3px rgba(0,0,0,0.1);color:var(--text2);cursor:pointer;font-size:12px;font-weight:bold;">›</button>
+      </div>` : ''}
+    </div>
+    ${rows.length > 1 ? dotsHtml : ''}
+  `;
+
+      // load form children for all themes
+      rows.forEach((t, idx) => {
+        const cap = t.properties["名額上限"]?.number || 0;
+        const listR = t.properties["報名名單"]?.rich_text?.[0]?.text?.content || "";
+        const reged = listR ? listR.split(",").map(s => s.trim()).filter(Boolean).length : 0;
+        if (!(cap > 0 && reged >= cap)) loadThemeChildren(idx);
+      });
+
+      // Touch swipe support
+      if (rows.length > 1) {
+        const wrap = document.getElementById("tWrap");
+        let sx = 0;
+        wrap.ontouchstart = e => { sx = e.touches[0].clientX; };
+        wrap.ontouchend = e => {
+          const dx = sx - e.changedTouches[0].clientX;
+          if (Math.abs(dx) > 40) tMove(dx > 0 ? 1 : -1);
+        };
+      }
+    }
+
+    function tRender() {
+      if (tDataCount <= 1) return;
+      document.getElementById("tTrack").style.transform = `translateX(-${tIdx * 100}%)`;
+      const dots = document.querySelectorAll("#tDots .dot");
+      dots.forEach((d, i) => {
+        if (i === tIdx) {
+          d.style.background = 'var(--sage)';
+          d.style.width = '14px';
+          d.style.borderRadius = '3px';
+          d.style.opacity = '1';
+        } else {
+          d.style.background = 'var(--sand-l)';
+          d.style.width = '5px';
+          d.style.borderRadius = '50%';
+          d.style.opacity = '0.6';
+        }
+      });
+    }
+    function tMove(d) {
+      if (tDataCount <= 1) return;
+      tIdx = (tIdx + d + tDataCount) % tDataCount;
+      tRender();
+    }
+    function tGo(i) {
+      tIdx = i;
+      tRender();
+    }
+
+    function toggleNote(idx) {
+      const f = document.getElementById("note-field-" + idx), ic = document.getElementById("note-ico-" + idx);
+      if (!f || !ic) return;
+      const s = f.classList.toggle("show"); ic.textContent = s ? "－" : "＋";
+    }
+    async function loadThemeChildren(idx) {
+      const area = document.getElementById("tf-child-area-" + idx);
+      if (!area) return;
+      if (!lineUID) { area.innerHTML = `<div style="font-size:12px;color:var(--text2);">請先透過 LINE 綁定帳號</div>`; return; }
+      try {
+        if (!myParentId) await loadMyParent();
+        if (!myParentId) { area.innerHTML = `<div style="font-size:12px;color:var(--text2);">帳號尚未綁定</div>`; return; }
+        if (myChildren.length === 0) { area.innerHTML = `<div style="font-size:12px;color:var(--text2);">名下尚無孩子</div>`; return; }
+        if (myChildren.length === 1) {
+          const n = myChildren[0].properties["暱稱"]?.title?.[0]?.text?.content || "";
+          area.innerHTML = `<div class="child-static" id="tf-child-single-${idx}">${n}</div>`;
+        } else {
+          let h = `<select class="fi" id="tf-child-sel-${idx}">`;
+          myChildren.forEach(c => { const n = c.properties["暱稱"]?.title?.[0]?.text?.content || ""; h += `<option value="${c.id}">${n}</option>`; });
+          h += "</select>"; area.innerHTML = h;
+        }
+      } catch (e) { area.innerHTML = `<div style="font-size:12px;color:#a32d2d;">載入失敗</div>`; }
+    }
+    async function submitTheme(idx) {
+      const child = getMyChild("tf-child-sel-" + idx, "tf-child-single-" + idx);
+      if (!child) { showErr("tf-err-" + idx, "請先透過 LINE 綁定帳號"); return; }
+      const note = document.getElementById("tf-note-" + idx)?.value || "";
+      const btn = document.getElementById("tf-btn-" + idx);
+      btn.disabled = true; btn.textContent = "報名中…";
+      try {
+        const currentTheme = allOpenThemes[idx];
+        await proxyAction("registerTheme", { themeId: currentTheme.id, childName: child.name, note });
+        document.getElementById("tf-name-out-" + idx).textContent = child.name;
+        document.getElementById("tf-form-" + idx).style.display = "none";
+        document.getElementById("tf-ok-" + idx).style.display = "";
+      } catch (e) { showErr("tf-err-" + idx, "報名失敗：" + e.message); }
+      finally { btn.disabled = false; btn.textContent = "報名主題課程"; }
+    }
+    function resetTheme(idx) { document.getElementById("tf-form-" + idx).style.display = ""; document.getElementById("tf-ok-" + idx).style.display = "none"; }
+    async function cancelTheme(idx) {
+      const child = getMyChild("tf-child-sel-" + idx, "tf-child-single-" + idx);
+      const currentTheme = allOpenThemes[idx];
+      if (!child || !currentTheme) { resetTheme(idx); return; }
+      try {
+        await proxyAction("cancelTheme", { themeId: currentTheme.id, childName: child.name });
+        resetTheme(idx);
+      } catch (e) { alert("取消失敗：" + e.message); }
+    }
+
+    // ── 週課表 ────────────────────────────────────────────────────
+    async function loadSchedule() {
+      try {
+        const rows = await proxyQuery("NOTION_DB_SCHEDULE");
+        const MAP = { "週一": 1, "週二": 2, "週三": 3, "週四": 4, "週五": 5, "週六": 6, "週日": 7 };
+        scheduleData = {};
+        rows.forEach(r => {
+          const day = r.properties["星期"]?.title?.[0]?.text?.content || "";
+          const dn = MAP[day]; if (!dn) return;
+          scheduleData[dn] = {
+            start: r.properties["開始時間"]?.rich_text?.[0]?.text?.content || "",
+            end: r.properties["結束時間"]?.rich_text?.[0]?.text?.content || "",
+            cap: r.properties["人數上限"]?.number ?? 6,
+            paused: r.properties["臨時暫停"]?.checkbox || false,
+            pauseMsg: r.properties["暫停說明"]?.rich_text?.[0]?.text?.content || "",
+            closed: r.properties["當日關閉"]?.checkbox || false,
+            label: day,
+          };
+        });
+        renderSchGrid();
+        buildDayOptions(); buildDateOptions(); buildSlotOptions(); updateHint();
+      } catch (e) { document.getElementById("schGrid").innerHTML = `<div style="font-size:12px;color:#a32d2d;grid-column:span 2;">課表載入失敗</div>`; }
+    }
+    function renderSchGrid() {
+      const g = document.getElementById("schGrid"); g.innerHTML = "";
+      [1, 2, 3, 4, 5, 6].forEach(d => {
+        const i = scheduleData[d]; if (!i || i.closed) return;
+        const el = document.createElement("div"); el.className = "sch-item";
+        if (i.paused) el.style.background = "#f9e5e5";
+        el.innerHTML = `<div class="sch-day">${i.label}</div>
+      <div class="sch-time" style="${i.paused ? "color:#a32d2d" : ""}">${i.start}–${i.end}</div>
+      ${i.paused && i.pauseMsg ? `<div style="font-size:10px;color:#a32d2d;margin-top:2px;">${i.pauseMsg}</div>` : ""}`;
+        g.appendChild(el);
+      });
+    }
+    function buildDayOptions() {
+      const sel = document.getElementById("selDay"); sel.innerHTML = "";
+      const W = ["", "一", "二", "三", "四", "五", "六", "日"];
+      [1, 2, 3, 4, 5, 6].forEach(d => {
+        const i = scheduleData[d]; if (!i || i.closed) return;
+        sel.innerHTML += `<option value="${d}">週${W[d]}</option>`;
+      });
+    }
+    function buildDateOptions() {
+      const sel = document.getElementById("selDate"); sel.innerHTML = "";
+      const W = ["", "一", "二", "三", "四", "五", "六", "日"];
+      for (let i = 0; i < 14; i++) {
+        const d = new Date(); d.setDate(d.getDate() + i);
+        const dn = d.getDay() || 7; const info = scheduleData[dn]; if (!info || info.closed) continue;
+        const str = d.toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
+        const opt = document.createElement("option"); opt.value = str; opt.dataset.dn = dn;
+        opt.textContent = `${d.getMonth() + 1}/${d.getDate()}（週${W[dn]}）`; sel.appendChild(opt);
+      }
+    }
+    function getCurrentDN() {
+      if (document.getElementById("cbWeekly").checked) return parseInt(document.getElementById("selDay").value) || 1;
+      const sel = document.getElementById("selDate");
+      return sel.options[sel.selectedIndex]?.dataset.dn ? parseInt(sel.options[sel.selectedIndex].dataset.dn) : 1;
+    }
+    function buildSlotOptions() {
+      const dn = getCurrentDN(); const info = scheduleData[dn];
+      const sel = document.getElementById("selSlot"); sel.innerHTML = "";
+      if (!info) return;
+      const [sh, sm] = info.start.split(":").map(Number);
+      const [eh, em] = info.end.split(":").map(Number);
+      let cur = sh * 60 + sm;
+      while (cur + 90 <= eh * 60 + em) {
+        const s = `${String(Math.floor(cur / 60)).padStart(2, "0")}:${String(cur % 60).padStart(2, "0")}`;
+        const e = `${String(Math.floor((cur + 90) / 60)).padStart(2, "0")}:${String((cur + 90) % 60).padStart(2, "0")}`;
+        sel.innerHTML += `<option value="${s}">${s}–${e}</option>`; cur += 30;
+      }
+    }
+    function toggleSchMode() {
+      const c = document.getElementById("cbWeekly").checked;
+      document.getElementById("weeklyMode").style.display = c ? "" : "none";
+      document.getElementById("dateMode").style.display = c ? "none" : "";
+      buildSlotOptions(); updateHint();
+    }
+    function onDayChange() { buildSlotOptions(); updateHint(); }
+    function onDateChange() { buildSlotOptions(); updateHint(); }
+    async function updateHint() {
+      const hint = document.getElementById("slotHint"); if (!hint) return;
+      const slot = document.getElementById("selSlot")?.value; if (!slot) return;
+      const dn = getCurrentDN(); const info = scheduleData[dn];
+      const cap = info ? info.cap : 6;
+      hint.className = "slot-hint ok"; hint.textContent = "查詢中…";
+      try {
+        const sessions = await proxyQuery("NOTION_DB_SESSION", {
+          and: [{ property: "時段", rich_text: { contains: slot } },
+          { property: "日期", date: { on_or_after: today() } },
+          { property: "日期", date: { on_or_before: daysLater(7) } }]
+        });
+        const cnt = sessions.reduce((s, se) => s + (se.properties["出席孩子"]?.relation?.length || 0), 0);
+        if (cnt >= cap) { hint.className = "slot-hint full"; hint.textContent = `此時段已額滿（${cnt} / ${cap} 人）`; }
+        else if (cnt >= cap - 2) { hint.className = "slot-hint warn"; hint.textContent = `此時段目前 ${cnt} 人，剩 ${cap - cnt} 個名額`; }
+        else { hint.className = "slot-hint ok"; hint.textContent = `此時段目前 ${cnt} 人，尚有名額`; }
+      } catch (e) { hint.textContent = "名額查詢失敗"; }
+    }
+
+    // ── 費用方案 ─────────────────────────────────────────────────
+    async function loadPlans() {
+      const area = document.getElementById("plans-area");
+      try {
+        const rows = await proxyQuery("NOTION_DB_PLAN", { property: "啟用狀態", checkbox: { equals: true } });
+        area.innerHTML = "";
+        rows.forEach((p, i) => {
+          const name = p.properties["方案名稱"]?.title?.[0]?.text?.content || "";
+          const price = p.properties["總價"]?.number || 0;
+          const qty = p.properties["堂數"]?.number || 1;
+          const avg = Math.round(price / qty);
+          const feat = i === rows.length - 1;
+          area.innerHTML += `<div class="price-item${feat ? " feat" : ""}">
+        <div><div class="p-name${feat ? " feat" : ""}">${name}${feat ? '<span class="badge-sm">推薦</span>' : ""}</div>
+        <div class="p-sub">${qty} 堂 · 平均每堂 $${avg}</div></div>
+        <div class="p-price${feat ? " feat" : ""}">$${price.toLocaleString()}</div></div>`;
+        });
+      } catch (e) { area.innerHTML = `<div class="err-box">費用方案載入失敗</div>`; }
+    }
+
+    // ── 常態課程報名 ─────────────────────────────────────────────
+    function toggleRegForm() {
+      const w = document.getElementById("regWrap");
+      const open = w.classList.toggle("show");
+      document.getElementById("regToggleBtn").textContent = open ? "收起" : "報名";
+      if (open) loadRegChildren();
+    }
+    async function loadMyParent() {
+      if (!lineUID) return;
+      const parents = await proxyQuery("NOTION_DB_PARENT", { property: "LINE UID", title: { equals: lineUID } });
+      if (parents.length > 0) {
+        myParentId = parents[0].id;
+        myChildren = await proxyQuery("NOTION_DB_CHILD", { property: "Parent", relation: { contains: myParentId } });
+      }
+    }
+    async function loadRegChildren() {
+      const area = document.getElementById("reg-child-area");
+      if (!lineUID) return;
+      try {
+        if (!myParentId) await loadMyParent();
+        if (!myParentId) return;
+        if (myChildren.length === 0) { area.innerHTML = `<div style="font-size:12px;color:var(--text2);">名下尚無孩子</div>`; return; }
+        if (myChildren.length === 1) {
+          const n = myChildren[0].properties["暱稱"]?.title?.[0]?.text?.content || "";
+          area.innerHTML = `<div class="child-static" id="reg-child-single">${n}</div>`;
+        } else {
+          let h = `<select class="fi" id="reg-child-sel">`;
+          myChildren.forEach(c => { const n = c.properties["暱稱"]?.title?.[0]?.text?.content || ""; h += `<option value="${c.id}">${n}</option>`; });
+          h += "</select>"; area.innerHTML = h;
+        }
+      } catch (e) { area.innerHTML = `<div style="font-size:12px;color:#a32d2d;">載入失敗</div>`; }
+    }
+    function getMyChild(selId, staticId) {
+      const single = document.getElementById(staticId);
+      if (single) {
+        const name = single.textContent.trim();
+        const c = myChildren.find(x => x.properties["暱稱"]?.title?.[0]?.text?.content === name);
+        return c ? { id: c.id, name } : null;
+      }
+      const sel = document.getElementById(selId);
+      if (!sel || sel.selectedIndex < 0) return null;
+      const c = myChildren[sel.selectedIndex];
+      return c ? { id: c.id, name: sel.options[sel.selectedIndex].text } : null;
+    }
+    async function submitReg() {
+      const child = getMyChild("reg-child-sel", "reg-child-single");
+      if (!child) { showErr("reg-err", "請先透過 LINE 綁定帳號"); return; }
+      const dn = getCurrentDN(); const W = ["", "週一", "週二", "週三", "週四", "週五", "週六", "週日"];
+      const slot = document.getElementById("selSlot").value;
+      const weekly = document.getElementById("cbWeekly").checked;
+      const dateStr = !weekly ? document.getElementById("selDate")?.value : null;
+      const btn = document.getElementById("regBtn"); btn.disabled = true; btn.textContent = "送出中…";
+      document.getElementById("reg-err").style.display = "none";
+      try {
+        await proxyAction("registerSession", { childId: child.id, childName: child.name, weekly, dayNum: dn, dayLabel: W[dn], slot, dateStr });
+        document.getElementById("reg-name-out").textContent = child.name;
+        btn.style.display = "none"; document.getElementById("reg-ok").style.display = "";
+      } catch (e) { showErr("reg-err", "報名失敗：" + e.message); }
+      finally { btn.disabled = false; btn.textContent = "送出報名"; }
+    }
+    function resetReg() {
+      document.getElementById("reg-ok").style.display = "none";
+      document.getElementById("regBtn").style.display = "";
+    }
+
+    function showErr(id, msg) { const el = document.getElementById(id); el.textContent = "⚠ " + msg; el.style.display = ""; }
+
+    // ── 初始化 ────────────────────────────────────────────────────
+    document.addEventListener("DOMContentLoaded", () => {
+      loadConfig();
+      loadHeroSlides();
+      loadThemeReal();
+      loadSchedule();
+      loadPlans();
+    });
+  </script>
 </body>
+
 </html>
