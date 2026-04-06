@@ -215,6 +215,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
             </select>
           </div>
 
+          <div class="fg">
+            <label class="fl" style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px;">
+              <input type="checkbox" id="add-feature" style="width:16px;height:16px;">
+              設為推薦方案 (Feature)
+            </label>
+          </div>
+
           <button class="abtn" id="add-btn" onclick="submitAddPlan()">建立方案</button>
         </div>
       </div>
@@ -264,6 +271,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
               <option value="true">啟用</option>
               <option value="false">停用</option>
             </select>
+          </div>
+
+          <div class="fg">
+            <label class="fl" style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px;">
+              <input type="checkbox" id="edit-feature" style="width:16px;height:16px;">
+              設為推薦方案 (Feature)
+            </label>
           </div>
 
           <button class="abtn" id="edit-btn" onclick="submitEditPlan()">儲存變更</button>
@@ -433,6 +447,11 @@ function renderPlanCard(p, container, isActive) {
         <div class="ps-val highlight">${formatMoney(avg)}</div>
         <div class="ps-label">每堂平均</div>
       </div>
+      <div class="plan-divider"></div>
+      <div class="plan-stat" style="flex:0.5;">
+        <div class="ps-val" style="font-size:14px;">${p.properties["推薦方案"]?.checkbox ? "⭐" : "—"}</div>
+        <div class="ps-label">推薦</div>
+      </div>
       <span style="font-size:12px;color:var(--text3);flex-shrink:0;margin-left:4px;">✎</span>
     </div>
   `;
@@ -470,11 +489,13 @@ function showEditPlan(planId) {
   const lessons = p.properties["堂數"]?.number || "";
   const price   = p.properties["總價"]?.number || "";
   const active  = p.properties["啟用狀態"]?.checkbox !== false;
+  const isFeat  = p.properties["推薦方案"]?.checkbox === true;
 
   document.getElementById("edit-name").value    = name;
   document.getElementById("edit-lessons").value = lessons;
   document.getElementById("edit-price").value   = price;
   document.getElementById("edit-status").value  = active ? "true" : "false";
+  document.getElementById("edit-feature").checked = isFeat;
 
   calcEditAvg();
   showView("v-edit");
@@ -490,6 +511,7 @@ async function submitEditPlan() {
   const lessons = parseInt(document.getElementById("edit-lessons").value) || 0;
   const price   = parseInt(document.getElementById("edit-price").value) || 0;
   const active  = document.getElementById("edit-status").value === "true";
+  const isFeat  = document.getElementById("edit-feature").checked;
 
   if (!name)    { showErr("edit-err", "請填寫方案名稱"); return; }
   if (!lessons) { showErr("edit-err", "請填寫堂數"); return; }
@@ -505,6 +527,7 @@ async function submitEditPlan() {
       "堂數":      { number: lessons },
       "總價":      { number: price },
       "啟用狀態":  { checkbox: active },
+      "推薦方案":  { checkbox: isFeat }
     });
 
     document.getElementById("edit-success").textContent = `✅ 「${name}」已更新！`;
@@ -515,6 +538,7 @@ async function submitEditPlan() {
     currentPlan.properties["堂數"]     = { number: lessons };
     currentPlan.properties["總價"]     = { number: price };
     currentPlan.properties["啟用狀態"] = { checkbox: active };
+    currentPlan.properties["推薦方案"] = { checkbox: isFeat };
 
     // 重新載入
     loadPlans();
@@ -555,6 +579,7 @@ async function submitAddPlan() {
   const lessons = parseInt(document.getElementById("add-lessons").value) || 0;
   const price   = parseInt(document.getElementById("add-price").value) || 0;
   const active  = document.getElementById("add-status").value === "true";
+  const isFeat  = document.getElementById("add-feature").checked;
 
   if (!name)    { showErr("add-err", "請填寫方案名稱"); return; }
   if (!lessons) { showErr("add-err", "請填寫堂數"); return; }
@@ -570,6 +595,7 @@ async function submitAddPlan() {
       "堂數":      { number: lessons },
       "總價":      { number: price },
       "啟用狀態":  { checkbox: active },
+      "推薦方案":  { checkbox: isFeat }
     });
 
     document.getElementById("add-success").textContent = `✅ 已建立「${name}」方案！`;
@@ -580,6 +606,7 @@ async function submitAddPlan() {
     document.getElementById("add-lessons").value = "";
     document.getElementById("add-price").value   = "";
     document.getElementById("add-status").value  = "true";
+    document.getElementById("add-feature").checked = false;
     calcAddAvg();
 
     // 重新載入
