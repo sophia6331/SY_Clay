@@ -152,15 +152,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
           <label class="fl">副標題</label>
           <input class="fi" id="add-subtitle" placeholder="例：模擬真實販售 · 培養數感與服務力">
         </div>
-        <div class="frow2">
-          <div class="fg">
-            <label class="fl">圖示 Emoji</label>
-            <input class="fi" id="add-icon" placeholder="例：🍰" maxlength="4">
-          </div>
-          <div class="fg">
-            <label class="fl">排序（數字越小越前面）</label>
-            <input class="fi" id="add-order" type="number" value="1" min="1">
-          </div>
+        <div class="fg">
+          <label class="fl">排序（數字越小越前面）</label>
+          <input class="fi" id="add-order" type="number" value="1" min="1">
         </div>
         <div class="frow2">
           <div class="fg">
@@ -215,15 +209,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
           <label class="fl">副標題</label>
           <input class="fi" id="edit-subtitle">
         </div>
-        <div class="frow2">
-          <div class="fg">
-            <label class="fl">圖示 Emoji</label>
-            <input class="fi" id="edit-icon" maxlength="4">
-          </div>
-          <div class="fg">
-            <label class="fl">排序</label>
-            <input class="fi" id="edit-order" type="number" min="1">
-          </div>
+        <div class="fg">
+          <label class="fl">排序</label>
+          <input class="fi" id="edit-order" type="number" min="1">
         </div>
         <div class="frow2">
           <div class="fg">
@@ -390,6 +378,13 @@ function previewPhoto(input, previewId) {
   }
 }
 
+function getImgUrl(url) {
+  if (!url) return "";
+  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (match) return `https://drive.google.com/uc?id=${match[1]}&export=download`;
+  return url;
+}
+
 // ── 資料存取 ────────────────────────────────────────────────
 
 let slidesCache = [];
@@ -460,13 +455,12 @@ async function loadSlides() {
       const p = row.properties;
       const title    = p["標題"]?.title?.[0]?.text?.content || "(無標題)";
       const subtitle = p["副標題"]?.rich_text?.[0]?.text?.content || "";
-      const icon     = p["圖示"]?.rich_text?.[0]?.text?.content || "🖼️";
       const order    = p["排序"]?.number ?? (idx+1);
       const enabled  = p["啟用"]?.checkbox ?? true;
       const linkType = p["連結類型"]?.select?.name || "一般連結";
       const themeId  = p["主題課程ID"]?.rich_text?.[0]?.text?.content || "";
       const url      = p["外部連結"]?.url || "";
-      const coverUrl = p["封面圖連結"]?.url || "";
+      const coverUrl = getImgUrl(p["封面圖連結"]?.url || "");
       
       let linkDisplay = "";
       if (linkType === "一般連結" && url) {
@@ -482,7 +476,6 @@ async function loadSlides() {
         <div class="slide-block">
           <div class="slide-head">
             <div class="slide-head-left">
-              <span class="slide-icon">${icon}</span>
               <span class="slide-title">${title}</span>
               <span class="badge ${enabled ? 'on' : 'off'}">${enabled ? '啟用' : '停用'}</span>
             </div>
@@ -515,7 +508,6 @@ async function submitAdd() {
   if (!title) { showErr("add-err", "請輸入標題"); return; }
 
   const subtitle = document.getElementById("add-subtitle").value.trim();
-  const icon     = document.getElementById("add-icon").value.trim() || "🖼️";
   const order    = parseInt(document.getElementById("add-order").value) || 1;
   const linkType = document.getElementById("add-link-type").value;
   const url      = document.getElementById("add-url").value.trim();
@@ -536,7 +528,6 @@ async function submitAdd() {
     const properties = {
       "標題": { title: [{ text: { content: title } }] },
       "副標題": { rich_text: [{ text: { content: subtitle } }] },
-      "圖示": { rich_text: [{ text: { content: icon } }] },
       "排序": { number: order },
       "連結類型": { select: { name: linkType } },
       "啟用": { checkbox: enabled },
@@ -551,7 +542,6 @@ async function submitAdd() {
     // 清空表單
     document.getElementById("add-title").value = "";
     document.getElementById("add-subtitle").value = "";
-    document.getElementById("add-icon").value = "";
     document.getElementById("add-order").value = "1";
     document.getElementById("add-link-type").value = "一般連結";
     document.getElementById("add-url").value = "";
@@ -578,7 +568,6 @@ function editSlide(pageId) {
   document.getElementById("edit-id").value = pageId;
   document.getElementById("edit-title").value    = p["標題"]?.title?.[0]?.text?.content || "";
   document.getElementById("edit-subtitle").value = p["副標題"]?.rich_text?.[0]?.text?.content || "";
-  document.getElementById("edit-icon").value     = p["圖示"]?.rich_text?.[0]?.text?.content || "";
   document.getElementById("edit-order").value    = p["排序"]?.number ?? 1;
   
   const linkType = p["連結類型"]?.select?.name || "一般連結";
@@ -595,7 +584,7 @@ function editSlide(pageId) {
 
   document.getElementById("edit-enabled").checked = p["啟用"]?.checkbox ?? true;
 
-  const coverUrl = p["封面圖連結"]?.url || "";
+  const coverUrl = getImgUrl(p["封面圖連結"]?.url || "");
   const preview = document.getElementById("edit-cover-preview");
   if (coverUrl) { preview.src = coverUrl; preview.style.display = ""; }
   else { preview.style.display = "none"; }
@@ -614,7 +603,6 @@ async function submitEdit() {
   if (!title) { showErr("edit-err", "請輸入標題"); return; }
 
   const subtitle = document.getElementById("edit-subtitle").value.trim();
-  const icon     = document.getElementById("edit-icon").value.trim() || "🖼️";
   const order    = parseInt(document.getElementById("edit-order").value) || 1;
   const linkType = document.getElementById("edit-link-type").value;
   const url      = document.getElementById("edit-url").value.trim();
@@ -635,7 +623,6 @@ async function submitEdit() {
     const properties = {
       "標題": { title: [{ text: { content: title } }] },
       "副標題": { rich_text: [{ text: { content: subtitle } }] },
-      "圖示": { rich_text: [{ text: { content: icon } }] },
       "排序": { number: order },
       "連結類型": { select: { name: linkType } },
       "啟用": { checkbox: enabled },
