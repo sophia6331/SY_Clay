@@ -386,26 +386,27 @@ async function loadHeroSlides() {
       const p = row.properties;
       const title = p["標題"]?.title?.[0]?.text?.content || "無標題";
       const sub   = p["副標題"]?.rich_text?.[0]?.text?.content || "";
-      const icon  = p["圖示"]?.rich_text?.[0]?.text?.content || "🖼️";
-      const cta   = "了解更多 →"; // 由於設計不含自訂 CTA
-      const cover = p["封面圖連結"]?.url || "";
-      
-      const slide = document.createElement("div");
-      // 用餘數決定背景類別
-      slide.className = "hero-slide hs" + ((i % 3) + 1);
-      slide.onclick = () => heroClick(i);
-      
+      let slideInner = '';
       if (cover) {
-        // 若有封面可以當背景
-        slide.style.background = `linear-gradient(rgba(255,255,255,0.75), rgba(255,255,255,0.9)), url('${cover}') center/cover`;
+        // 如果有封面圖，加上從底部的深色漸層，並將文字對齊左下方
+        slide.style.background = `linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0) 60%), url('${cover}') center/cover`;
+        slide.style.justifyContent = "flex-end";
+        slide.style.alignItems = "flex-start";
+        slide.style.padding = "20px";
+        
+        slideInner = `
+          <div class="s-title" style="color:#ffffff; text-shadow:0 1px 4px rgba(0,0,0,0.6); font-size:19px; margin-bottom:4px; z-index:2;">${title}</div>
+          <div class="s-sub" style="color:#eeeeee; text-shadow:0 1px 3px rgba(0,0,0,0.6); font-size:13px; z-index:2;">${sub}</div>
+        `;
+      } else {
+        // 沒有封面圖，純色背景居中顯示
+        slideInner = `
+          <div class="s-title">${title}</div>
+          <div class="s-sub">${sub}</div>
+        `;
       }
       
-      slide.innerHTML = `
-        <div class="s-icon">${icon}</div>
-        <div class="s-title">${title}</div>
-        <div class="s-sub">${sub}</div>
-        <div class="s-cta">${cta}</div>
-      `;
+      slide.innerHTML = slideInner;
       track.appendChild(slide);
       
       // dot
@@ -467,9 +468,19 @@ function heroClick(i) {
        location.href = url;
     }
   } else if (linkType === "主題課程") {
-    // 預設捲動至我們的主題課程區塊
+    // 切換到對應的主題課程並捲動
     document.getElementById("s1-other").style.display="none";
     document.getElementById("s1-theme").style.display="";
+    
+    if (themeId && typeof allOpenThemes !== 'undefined' && allOpenThemes.length > 0) {
+      // 嘗試找到對應的主題課程 (忽略 - 符號進行比對)
+      const targetTheme = allOpenThemes.find(t => t.id.replace(/-/g, '') === themeId.replace(/-/g, '')) || 
+                          allOpenThemes.find(t => t.id === themeId);
+      if (targetTheme) {
+        renderTheme(targetTheme);
+      }
+    }
+    
     document.getElementById("s1-theme").scrollIntoView({behavior:"smooth"});
   } else {
     // 預設將這則 Slide 的資訊更新到底下的「活動介紹」區塊並捲動
@@ -526,6 +537,8 @@ async function loadTheme() {
 // ── 真正的資料載入：改用正確的 dbId ──────────────────────────
 // GAS doGet 不知道哪個是 THEME db，所以前端傳 db 名稱，
 // GAS 用 CONFIG[db] 對應。做法：db 參數傳 "NOTION_DB_THEME" 等 key name
+let allOpenThemes = [];
+
 async function loadThemeReal() {
   const area = document.getElementById("theme-area");
   try {
@@ -537,69 +550,77 @@ async function loadThemeReal() {
       area.innerHTML="<div style='font-size:13px;color:var(--text2);padding:10px 0;'>目前沒有開放中的主題課程</div>";
       return;
     }
-    currentTheme = rows[0];
-    const p     = currentTheme.properties;
-    const name  = p["課程名稱"]?.title?.[0]?.text?.content || "";
-    const dStr  = p["日期時間"]?.date?.start || "";
-    const desc  = p["課程說明"]?.rich_text?.[0]?.text?.content || "";
-    const imgUrl= p["封面圖連結"]?.url || "";
-    const deduct= p["扣除堂數"]?.number || 1;
-    const cap   = p["名額上限"]?.number || 0;
-    const listR = p["報名名單"]?.rich_text?.[0]?.text?.content || "";
-    const reged = listR ? listR.split(",").map(s=>s.trim()).filter(Boolean).length : 0;
-    const full  = cap>0 && reged>=cap;
-    const pct   = cap>0 ? Math.round(reged/cap*100) : 0;
+    allOpenThemes = rows;
+    renderTheme(rows[0]);
+  } catch(e) {
+    area.innerHTML = `<div class="err-box">主題課程載入失敗：${e.message}</div>`;
+  }
+}
 
-    area.innerHTML = `
-      <div class="card">
-        <div class="img-car">
-          <div class="img-track" id="imgTrack">
-            <div class="img-slide" style="background:var(--rose-l);">
-              ${imgUrl ? `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;" alt="${name}" onerror="this.style.display='none'">` : `<div style="font-size:32px;">💐</div><div style="font-size:12px;font-weight:500;color:var(--rose-t);">${name}</div>`}
-            </div>
+function renderTheme(themeObj) {
+  const area = document.getElementById("theme-area");
+  if (!themeObj) return;
+  
+  currentTheme = themeObj;
+  const p     = currentTheme.properties;
+  const name  = p["課程名稱"]?.title?.[0]?.text?.content || "";
+  const dStr  = p["日期時間"]?.date?.start || "";
+  const desc  = p["課程說明"]?.rich_text?.[0]?.text?.content || "";
+  const imgUrl= p["封面圖連結"]?.url || "";
+  const deduct= p["扣除堂數"]?.number || 1;
+  const cap   = p["名額上限"]?.number || 0;
+  const listR = p["報名名單"]?.rich_text?.[0]?.text?.content || "";
+  const reged = listR ? listR.split(",").map(s=>s.trim()).filter(Boolean).length : 0;
+  const full  = cap>0 && reged>=cap;
+  const pct   = cap>0 ? Math.round(reged/cap*100) : 0;
+
+  area.innerHTML = `
+    <div class="card">
+      <div class="img-car">
+        <div class="img-track" id="imgTrack">
+          <div class="img-slide" style="background:var(--rose-l);">
+            ${imgUrl ? `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;" alt="${name}" onerror="this.style.display='none'">` : `<div style="font-size:32px;">💐</div><div style="font-size:12px;font-weight:500;color:var(--rose-t);">${name}</div>`}
           </div>
         </div>
-        <div class="idots"><div class="idot on"></div></div>
-        <div class="theme-big-title">${name}</div>
-        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">
-          ${dStr?`<span class="tag sage">${formatDate(dStr)}</span>`:""}
-          <span class="tag sand">扣 ${deduct} 堂課</span>
-        </div>
-        ${desc?`<div class="desc-block">${desc}</div>`:""}
-        <div class="pbar-wrap" style="margin-bottom:12px;">
-          <span style="font-size:12px;color:var(--text2);">剩餘名額：<strong style="color:var(--sage-t);">${cap-reged}</strong> / ${cap}</span>
-          <div class="pbar"><div class="pfill" style="width:${pct}%;"></div></div>
-        </div>
-        ${full
-          ? `<div style="text-align:center;padding:10px;font-size:13px;color:var(--text2);background:var(--bg2);border-radius:var(--r-md);">名額已滿，感謝踴躍報名</div>`
-          : `<div id="tf-err" class="err-box" style="display:none;"></div>
-             <div id="tf-form">
-               <div class="fg">
-                 <label class="fl">孩子</label>
-                 <div id="tf-child-area"><div style="font-size:12px;color:var(--text2);">載入中…</div></div>
-               </div>
-               <button class="note-tog" onclick="toggleNote()">
-                 <div class="note-ico" id="note-ico">＋</div><span>新增備註</span>
-               </button>
-               <div class="note-field" id="note-field"><input class="fi" id="tf-note" placeholder=""></div>
-               <button class="btn-main" id="tf-btn" onclick="submitTheme()">報名主題課程</button>
+      </div>
+      <div class="idots"><div class="idot on"></div></div>
+      <div class="theme-big-title">${name}</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">
+        ${dStr?`<span class="tag sage">${formatDate(dStr)}</span>`:""}
+        <span class="tag sand">扣 ${deduct} 堂課</span>
+      </div>
+      ${desc?`<div class="desc-block">${desc}</div>`:""}
+      <div class="pbar-wrap" style="margin-bottom:12px;">
+        <span style="font-size:12px;color:var(--text2);">剩餘名額：<strong style="color:var(--sage-t);">${cap-reged}</strong> / ${cap}</span>
+        <div class="pbar"><div class="pfill" style="width:${pct}%;"></div></div>
+      </div>
+      ${full
+        ? `<div style="text-align:center;padding:10px;font-size:13px;color:var(--text2);background:var(--bg2);border-radius:var(--r-md);">名額已滿，感謝踴躍報名</div>`
+        : `<div id="tf-err" class="err-box" style="display:none;"></div>
+           <div id="tf-form">
+             <div class="fg">
+               <label class="fl">孩子</label>
+               <div id="tf-child-area"><div style="font-size:12px;color:var(--text2);">載入中…</div></div>
              </div>
-             <div id="tf-ok" style="display:none;">
-               <div class="success-box">
-                 <div class="ok-icon">✅</div>
-                 <div class="ok-msg">報名成功！</div>
-                 <div class="ok-sub">已為 <span id="tf-name-out"></span> 完成報名<br>課程前會透過 LINE 提醒</div>
-               </div>
-               <button class="btn-ghost" onclick="resetTheme()">修改報名</button>
-               <span class="cancel-lnk" onclick="cancelTheme()">取消報名</span>
-             </div>`
-        }
-      </div>`;
+             <button class="note-tog" onclick="toggleNote()">
+               <div class="note-ico" id="note-ico">＋</div><span>新增備註</span>
+             </button>
+             <div class="note-field" id="note-field"><input class="fi" id="tf-note" placeholder=""></div>
+             <button class="btn-main" id="tf-btn" onclick="submitTheme()">報名主題課程</button>
+           </div>
+           <div id="tf-ok" style="display:none;">
+             <div class="success-box">
+               <div class="ok-icon">✅</div>
+               <div class="ok-msg">報名成功！</div>
+               <div class="ok-sub">已為 <span id="tf-name-out"></span> 完成報名<br>課程前會透過 LINE 提醒</div>
+             </div>
+             <button class="btn-ghost" onclick="resetTheme()">修改報名</button>
+             <span class="cancel-lnk" onclick="cancelTheme()">取消報名</span>
+           </div>`
+      }
+    </div>`;
 
-    if (!full) loadThemeChildren();
-  } catch(e) {
-    area.innerHTML = `<div class="err-box">載入失敗：${e.message}</div>`;
-  }
+  if (!full) loadThemeChildren();
 }
 function toggleNote() {
   const f=document.getElementById("note-field"),ic=document.getElementById("note-ico");
