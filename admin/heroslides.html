@@ -162,13 +162,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
             <input class="fi" id="add-order" type="number" value="1" min="1">
           </div>
         </div>
-        <div class="fg">
-          <label class="fl">CTA 文字</label>
-          <input class="fi" id="add-cta" placeholder="例：了解更多 →" value="了解更多 →">
-        </div>
-        <div class="fg">
-          <label class="fl">連結網址（選填）</label>
-          <input class="fi" id="add-url" placeholder="例：https://...">
+        <div class="frow2">
+          <div class="fg">
+            <label class="fl">連結類型</label>
+            <select class="fi" id="add-link-type" onchange="toggleAddLinkType()">
+              <option value="一般連結">一般網址</option>
+              <option value="主題課程">選擇主題課程</option>
+            </select>
+          </div>
+          <div class="fg" id="add-link-url-group">
+            <label class="fl">外部連結 (URL)</label>
+            <input class="fi" id="add-url" placeholder="例：https://...">
+          </div>
+          <div class="fg" id="add-link-theme-group" style="display:none;">
+            <label class="fl">對應的主題課程</label>
+            <select class="fi" id="add-theme">
+              <option value="">選擇課程…</option>
+            </select>
+          </div>
         </div>
         <div class="fg">
           <label class="fl">封面圖（選填）</label>
@@ -214,13 +225,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
             <input class="fi" id="edit-order" type="number" min="1">
           </div>
         </div>
-        <div class="fg">
-          <label class="fl">CTA 文字</label>
-          <input class="fi" id="edit-cta">
-        </div>
-        <div class="fg">
-          <label class="fl">連結網址（選填）</label>
-          <input class="fi" id="edit-url">
+        <div class="frow2">
+          <div class="fg">
+            <label class="fl">連結類型</label>
+            <select class="fi" id="edit-link-type" onchange="toggleEditLinkType()">
+              <option value="一般連結">一般網址</option>
+              <option value="主題課程">選擇主題課程</option>
+            </select>
+          </div>
+          <div class="fg" id="edit-link-url-group">
+            <label class="fl">外部連結 (URL)</label>
+            <input class="fi" id="edit-url" placeholder="例：https://...">
+          </div>
+          <div class="fg" id="edit-link-theme-group" style="display:none;">
+            <label class="fl">對應的主題課程</label>
+            <select class="fi" id="edit-theme">
+              <option value="">選擇課程…</option>
+            </select>
+          </div>
         </div>
         <div class="fg">
           <label class="fl">封面圖（重新上傳將覆蓋）</label>
@@ -248,6 +270,7 @@ const CONFIG = {
   GAS_URL: "https://script.google.com/macros/s/AKfycbw6PBIUdHTzKBBdbQbRcU-za2rJQtBL6ZEjvJI6z1-NN1ziW1gjTafSdcx8U0E_eRHR/exec",
 
   NOTION_DB_HEROSLIDE: "NOTION_DB_HEROSLIDE",
+  NOTION_DB_THEME: "NOTION_DB_THEME",
 };
 // ============================================================
 
@@ -370,6 +393,50 @@ function previewPhoto(input, previewId) {
 // ── 資料存取 ────────────────────────────────────────────────
 
 let slidesCache = [];
+let themesCache = [];
+
+async function loadThemeOptions() {
+  try {
+    themesCache = await notionQuery(CONFIG.NOTION_DB_THEME, null, [{ property: "日期時間", direction: "descending" }]);
+    populateThemeSelect("add-theme");
+    populateThemeSelect("edit-theme");
+  } catch (e) {
+    console.error("載入主題課程列表失敗", e);
+  }
+}
+
+function populateThemeSelect(selectId) {
+  const sel = document.getElementById(selectId);
+  sel.innerHTML = '<option value="">選擇課程…</option>';
+  themesCache.forEach(t => {
+    const name = t.properties["課程名稱"]?.title?.[0]?.text?.content || "未知課程";
+    const status = t.properties["報名狀態"]?.select?.name || "";
+    const dateStr = t.properties["日期時間"]?.date?.start || "";
+    // 如果想要排版漂亮一點（例如在選單顯示日期）
+    let label = name;
+    if (dateStr) label += ` (${dateStr})`;
+    if (status) label += ` [${status}]`;
+    
+    const opt = document.createElement("option");
+    opt.value = t.id;
+    opt.textContent = label;
+    sel.appendChild(opt);
+  });
+}
+
+function toggleAddLinkType() {
+  const type = document.getElementById("add-link-type").value;
+  document.getElementById("add-link-url-group").style.display = type === "一般連結" ? "block" : "none";
+  document.getElementById("add-link-theme-group").style.display = type === "主題課程" ? "block" : "none";
+}
+
+function toggleEditLinkType() {
+  const type = document.getElementById("edit-link-type").value;
+  document.getElementById("edit-link-url-group").style.display = type === "一般連結" ? "block" : "none";
+  document.getElementById("edit-link-theme-group").style.display = type === "主題課程" ? "block" : "none";
+}
+
+let slidesLoading = false;
 
 async function loadSlides() {
   const list = document.getElementById("slide-list");
@@ -396,9 +463,20 @@ async function loadSlides() {
       const icon     = p["圖示"]?.rich_text?.[0]?.text?.content || "🖼️";
       const order    = p["排序"]?.number ?? (idx+1);
       const enabled  = p["啟用"]?.checkbox ?? true;
-      const cta      = p["CTA文字"]?.rich_text?.[0]?.text?.content || "";
-      const url      = p["連結網址"]?.url || "";
+      const linkType = p["連結類型"]?.select?.name || "一般連結";
+      const themeId  = p["主題課程ID"]?.rich_text?.[0]?.text?.content || "";
+      const url      = p["外部連結"]?.url || "";
       const coverUrl = p["封面圖連結"]?.url || "";
+      
+      let linkDisplay = "";
+      if (linkType === "一般連結" && url) {
+        linkDisplay = `<a href="${url}" target="_blank" style="color:var(--clay-sage);font-size:11px;">${url.substring(0,50)}…</a>`;
+      } else if (linkType === "主題課程" && themeId) {
+        // 從 themesCache 裡面找對應課程名字
+        const targetTheme = themesCache.find(t => t.id === themeId);
+        const tName = targetTheme ? (targetTheme.properties["課程名稱"]?.title?.[0]?.text?.content || "未知") : "已刪除";
+        linkDisplay = `<span style="color:var(--clay-text-rose);font-size:11px;">[主題課程] ${tName}</span>`;
+      }
 
       list.innerHTML += `
         <div class="slide-block">
@@ -412,8 +490,7 @@ async function loadSlides() {
           </div>
           <div class="slide-body">
             ${subtitle ? `<div class="slide-info">副標題：${subtitle}</div>` : ""}
-            ${cta ? `<div class="slide-info">CTA：${cta}</div>` : ""}
-            ${url ? `<div class="slide-info">連結：<a href="${url}" target="_blank" style="color:var(--clay-sage);font-size:11px;">${url.substring(0,50)}…</a></div>` : ""}
+            ${linkDisplay ? `<div class="slide-info">連結：${linkDisplay}</div>` : ""}
             ${coverUrl ? `<div style="margin-top:6px;"><img src="${coverUrl}" style="max-width:120px;max-height:70px;object-fit:cover;border-radius:6px;" onerror="this.style.display='none'"></div>` : ""}
             <div class="slide-actions">
               <button class="abtn sm sage" onclick="editSlide('${row.id}')">✏️ 編輯</button>
@@ -440,14 +517,16 @@ async function submitAdd() {
   const subtitle = document.getElementById("add-subtitle").value.trim();
   const icon     = document.getElementById("add-icon").value.trim() || "🖼️";
   const order    = parseInt(document.getElementById("add-order").value) || 1;
-  const cta      = document.getElementById("add-cta").value.trim();
+  const linkType = document.getElementById("add-link-type").value;
   const url      = document.getElementById("add-url").value.trim();
+  const themeId  = document.getElementById("add-theme").value;
   const enabled  = document.getElementById("add-enabled").checked;
+
+  if (linkType === "主題課程" && !themeId) { showErr("add-err", "請選擇關聯的主題課程"); return; }
 
   btn.disabled = true; btn.textContent = "送出中…";
 
   try {
-    // 處理封面圖上傳
     let coverUrl = "";
     const coverFile = document.getElementById("add-cover").files[0];
     if (coverFile) {
@@ -459,10 +538,11 @@ async function submitAdd() {
       "副標題": { rich_text: [{ text: { content: subtitle } }] },
       "圖示": { rich_text: [{ text: { content: icon } }] },
       "排序": { number: order },
-      "CTA文字": { rich_text: [{ text: { content: cta } }] },
+      "連結類型": { select: { name: linkType } },
       "啟用": { checkbox: enabled },
     };
-    if (url)      properties["連結網址"] = { url: url };
+    if (linkType === "一般連結" && url) properties["外部連結"] = { url: url };
+    if (linkType === "主題課程" && themeId) properties["主題課程ID"] = { rich_text: [{ text: { content: themeId } }] };
     if (coverUrl) properties["封面圖連結"] = { url: coverUrl };
 
     await notionCreate(CONFIG.NOTION_DB_HEROSLIDE, properties);
@@ -473,11 +553,13 @@ async function submitAdd() {
     document.getElementById("add-subtitle").value = "";
     document.getElementById("add-icon").value = "";
     document.getElementById("add-order").value = "1";
-    document.getElementById("add-cta").value = "了解更多 →";
+    document.getElementById("add-link-type").value = "一般連結";
     document.getElementById("add-url").value = "";
+    document.getElementById("add-theme").value = "";
     document.getElementById("add-cover").value = "";
     document.getElementById("add-cover-preview").style.display = "none";
     document.getElementById("add-enabled").checked = true;
+    toggleAddLinkType();
 
   } catch (e) {
     showErr("add-err", e.message);
@@ -498,8 +580,19 @@ function editSlide(pageId) {
   document.getElementById("edit-subtitle").value = p["副標題"]?.rich_text?.[0]?.text?.content || "";
   document.getElementById("edit-icon").value     = p["圖示"]?.rich_text?.[0]?.text?.content || "";
   document.getElementById("edit-order").value    = p["排序"]?.number ?? 1;
-  document.getElementById("edit-cta").value      = p["CTA文字"]?.rich_text?.[0]?.text?.content || "";
-  document.getElementById("edit-url").value      = p["連結網址"]?.url || "";
+  
+  const linkType = p["連結類型"]?.select?.name || "一般連結";
+  document.getElementById("edit-link-type").value = linkType;
+  
+  if (linkType === "一般連結") {
+    document.getElementById("edit-url").value = p["外部連結"]?.url || "";
+    document.getElementById("edit-theme").value = "";
+  } else {
+    document.getElementById("edit-url").value = "";
+    document.getElementById("edit-theme").value = p["主題課程ID"]?.rich_text?.[0]?.text?.content || "";
+  }
+  toggleEditLinkType();
+
   document.getElementById("edit-enabled").checked = p["啟用"]?.checkbox ?? true;
 
   const coverUrl = p["封面圖連結"]?.url || "";
@@ -523,14 +616,16 @@ async function submitEdit() {
   const subtitle = document.getElementById("edit-subtitle").value.trim();
   const icon     = document.getElementById("edit-icon").value.trim() || "🖼️";
   const order    = parseInt(document.getElementById("edit-order").value) || 1;
-  const cta      = document.getElementById("edit-cta").value.trim();
+  const linkType = document.getElementById("edit-link-type").value;
   const url      = document.getElementById("edit-url").value.trim();
+  const themeId  = document.getElementById("edit-theme").value;
   const enabled  = document.getElementById("edit-enabled").checked;
+
+  if (linkType === "主題課程" && !themeId) { showErr("edit-err", "請選擇關聯的主題課程"); return; }
 
   btn.disabled = true; btn.textContent = "儲存中…";
 
   try {
-    // 處理封面圖上傳
     let coverUrl = "";
     const coverFile = document.getElementById("edit-cover").files[0];
     if (coverFile) {
@@ -542,11 +637,19 @@ async function submitEdit() {
       "副標題": { rich_text: [{ text: { content: subtitle } }] },
       "圖示": { rich_text: [{ text: { content: icon } }] },
       "排序": { number: order },
-      "CTA文字": { rich_text: [{ text: { content: cta } }] },
+      "連結類型": { select: { name: linkType } },
       "啟用": { checkbox: enabled },
     };
-    if (url) properties["連結網址"] = { url: url };
-    else     properties["連結網址"] = { url: null };
+    
+    // Notion API 對未使用的欄位可以給 null 清空
+    if (linkType === "一般連結") {
+      properties["外部連結"] = url ? { url: url } : { url: null };
+      properties["主題課程ID"] = { rich_text: [] };
+    } else {
+      properties["外部連結"] = { url: null };
+      properties["主題課程ID"] = { rich_text: [{ text: { content: themeId } }] };
+    }
+    
     if (coverUrl) properties["封面圖連結"] = { url: coverUrl };
 
     await notionUpdate(pageId, properties);
@@ -573,7 +676,8 @@ async function deleteSlide(pageId, title) {
 
 // ── 初始化 ──────────────────────────────────────────────────
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  await loadThemeOptions();
   loadSlides();
 });
 </script>
