@@ -268,7 +268,7 @@ async function loadRegList() {
     const parents=await proxyQuery("NOTION_DB_PARENT",{property:"LINE UID",title:{equals:lineUID}});
     if(parents.length===0) { 
       loadEl.style.display="none"; 
-      emptyEl.innerHTML="請先綁定小朋友，完成綁定後就能繼續報名";
+      emptyEl.innerHTML='請先綁定小朋友，完成綁定後就能開始報名囉！<br><br><button class="btn-main" style="max-width:200px;margin:0 auto;display:block;" onclick="location.href=\'children.html?uid='+lineUID+'\'">去綁定</button>';
       emptyEl.style.display=""; 
       return; 
     }
@@ -276,7 +276,7 @@ async function loadRegList() {
     myChildren=await proxyQuery("NOTION_DB_CHILD",{property:"Parent",relation:{contains:myParentId}});
     if(myChildren.length===0) { 
       loadEl.style.display="none"; 
-      emptyEl.innerHTML="請先綁定小朋友，完成綁定後就能繼續報名";
+      emptyEl.innerHTML='請先綁定小朋友，完成綁定後就能開始報名囉！<br><br><button class="btn-main" style="max-width:200px;margin:0 auto;display:block;" onclick="location.href=\'children.html?uid='+lineUID+'\'">去綁定</button>';
       emptyEl.style.display=""; 
       return; 
     }
