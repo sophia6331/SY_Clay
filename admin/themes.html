@@ -301,6 +301,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
             <textarea class="fi" id="edit-desc" rows="3" style="resize:vertical;" placeholder="前台會顯示。課程內容、材料費、注意事項…"></textarea>
           </div>
 
+          <div class="fg">
+            <label class="fl">封面圖片（重新上傳將覆蓋舊圖）</label>
+            <!-- 目前封面圖預覽 -->
+            <div id="edit-cover-current" style="margin-bottom:6px;display:none;">
+              <span style="font-size:11px;color:var(--text2);">目前圖片：</span>
+              <img id="edit-cover-current-img" src="" style="height:60px;border-radius:6px;margin-top:4px;display:block;" alt="目前封面圖">
+            </div>
+            <input class="fi" id="edit-cover" type="file" accept="image/*" style="padding:4px 6px;" onchange="previewPhoto(this,'edit-cover-preview')">
+            <div id="edit-cover-preview" style="margin-top:4px;"></div>
+          </div>
+
           <button class="abtn" id="edit-btn" onclick="submitEditTheme()">儲存修改</button>
         </div>
       </div>
@@ -1139,6 +1150,20 @@ function showEditTheme(themeId) {
   document.getElementById("edit-cap").value    = t.properties["名額上限"]?.number || 0;
   document.getElementById("edit-status").value = t.properties["報名狀態"]?.select?.name || "開放";
   document.getElementById("edit-desc").value   = t.properties["課程說明"]?.rich_text?.[0]?.text?.content || "";
+  // 顯示目前封面圖（若有）
+  const currentCover = t.properties["封面圖連結"]?.url || "";
+  const currentEl = document.getElementById("edit-cover-current");
+  const currentImg = document.getElementById("edit-cover-current-img");
+  if (currentCover) {
+    currentImg.src = currentCover;
+    currentEl.style.display = "";
+  } else {
+    currentEl.style.display = "none";
+    currentImg.src = "";
+  }
+  // 清空上傳欄
+  document.getElementById("edit-cover").value = "";
+  document.getElementById("edit-cover-preview").innerHTML = "";
 }
 
 async function submitEditTheme() {
@@ -1156,11 +1181,20 @@ async function submitEditTheme() {
   if (!name)     { showErr("edit-err", "請填寫課程名稱"); return; }
   if (!datetime) { showErr("edit-err", "請選擇日期時間"); return; }
 
+  const coverFile = document.getElementById("edit-cover").files[0] || null;
   const btn = document.getElementById("edit-btn");
   btn.disabled = true;
   btn.textContent = "儲存中…";
 
   try {
+    // 若有新圖片，先上傳到 Google Drive
+    let cover = "";
+    if (coverFile) {
+      btn.textContent = "上傳圖片中…";
+      cover = await uploadImageFile(coverFile);
+    }
+    btn.textContent = "儲存中…";
+
     const props = {
       "課程名稱":  { title: [{ text: { content: name } }] },
       "日期時間":  { date: { start: datetime } },
@@ -1168,6 +1202,7 @@ async function submitEditTheme() {
       "名額上限":  { number: capacity },
       "扣除堂數":  { number: deduct },
     };
+    if (cover) props["封面圖連結"] = { url: cover };
     if (desc) {
       props["課程說明"] = { rich_text: [{ text: { content: desc } }] };
     } else {
