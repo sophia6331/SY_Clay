@@ -845,7 +845,7 @@
         <img src="images/logo.png" style="height:28px;" onerror="this.style.display='none'">
         <div class="nav-title" id="nav-studio-name">SY 兒童手作教室</div>
       </div>
-      <div class="nav-links">
+      <div class="nav-links" id="nav-links">
         <a class="nl on" href="index.html">首頁</a>
         <a class="nl " href="register.html">報名</a>
         <a class="nl " href="children.html">孩子</a>
@@ -1096,6 +1096,18 @@
     (function initUID() {
       const u = new URLSearchParams(location.search).get("uid");
       if (u) setLineUID(u);
+    })();
+
+    // 導航連結自動帶上 uid 參數
+    (function updateNavLinks() {
+      const uid = getLineUID();
+      if (!uid) return;
+      document.querySelectorAll("#nav-links a.nl").forEach(a => {
+        const href = a.getAttribute("href");
+        if (href && !href.startsWith("http") && !href.includes("uid=")) {
+          a.href = href + (href.includes("?") ? "&" : "?") + "uid=" + encodeURIComponent(uid);
+        }
+      });
     })();
 
 
