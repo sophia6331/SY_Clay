@@ -646,7 +646,8 @@
     }
 
     .hero-slide {
-      min-width: 100%;
+      flex-shrink: 0;
+      width: 100%;
       height: 200px;
       display: flex;
       flex-direction: column;
@@ -979,7 +980,7 @@
       <div class="about-block">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
           <img
-            src="/images/logo.png"
+            src="images/logo.png"
             style="width:50px;height:50px;object-fit:contain;flex-shrink:0;" alt="logo">
           <div class="about-title" style="margin-bottom:0;" id="about-title">關於 SY 兒童手作教室</div>
         </div>
@@ -1188,12 +1189,8 @@
           dots.appendChild(dot);
         });
 
-        // 設定寬度 & 事件
-        const len = rows.length;
-        track.style.width = (len * 100) + "%";
-        Array.from(track.children).forEach(c => {
-          c.style.width = (100 / len) + "%";
-        });
+        // 設定寬度 & 事件 — 不需要手動設定，CSS flex-shrink:0 + width:100% 會讓每張都佔滿
+        // track 不需要設定寬度，flex 會自動撐開
 
         let s = 0;
         track.ontouchstart = e => { s = e.touches[0].clientX; };
@@ -1208,8 +1205,7 @@
     }
 
     function hRender() {
-      const len = heroSlidesData.length || 1;
-      document.getElementById("hTrack").style.transform = `translateX(-${hIdx * (100 / len)}%)`;
+      document.getElementById("hTrack").style.transform = `translateX(-${hIdx * 100}%)`;
       document.querySelectorAll("#hDots .dot").forEach((d, i) => d.className = "dot" + (i === hIdx ? " on" : ""));
     }
     function hMove(d) {
@@ -1247,11 +1243,20 @@
 
         if (themeId && typeof allOpenThemes !== 'undefined' && allOpenThemes.length > 0) {
           // 嘗試找到對應的主題課程並切換至該 Slide
-          const targetIdx = allOpenThemes.findIndex(t => t.id.replace(/-/g, '') === themeId.replace(/-/g, '')) > -1 ?
-            allOpenThemes.findIndex(t => t.id.replace(/-/g, '') === themeId.replace(/-/g, '')) :
-            allOpenThemes.findIndex(t => t.id === themeId);
+          // Notion ID 可能帶破折號或不帶破折號，統一比對
+          const cleanId = themeId.replace(/-/g, '');
+          let targetIdx = allOpenThemes.findIndex(t => t.id.replace(/-/g, '') === cleanId);
+          if (targetIdx === -1) {
+            // 也嘗試用課程名稱匹配（備用方案）
+            const heroTitle = row.properties["標題"]?.title?.[0]?.text?.content || "";
+            targetIdx = allOpenThemes.findIndex(t => {
+              const tn = t.properties["課程名稱"]?.title?.[0]?.text?.content || "";
+              return tn === heroTitle;
+            });
+          }
+          console.log('heroClick themeId matching:', { themeId, cleanId, targetIdx, allOpenThemesIds: allOpenThemes.map(t => t.id) });
           if (targetIdx > -1) {
-            if (typeof tGo === 'function') tGo(targetIdx);
+            tGo(targetIdx);
           }
         }
 
