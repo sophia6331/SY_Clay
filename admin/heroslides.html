@@ -380,8 +380,14 @@ function previewPhoto(input, previewId) {
 
 function getImgUrl(url) {
   if (!url) return "";
-  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-  if (match) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+  let id = "";
+  const m1 = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (m1) id = m1[1];
+  else {
+    const m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (m2) id = m2[1];
+  }
+  if (id) return `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
   return url;
 }
 
