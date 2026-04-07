@@ -1024,7 +1024,7 @@
       const params = new URLSearchParams({ action: "query", db: dbId });
       if (filter) params.set("filter", JSON.stringify(filter));
       if (sorts) params.set("sorts", JSON.stringify(sorts));
-      const res = await fetch(`${GAS_URL}?${params}`);
+      const res = await fetch(`${GAS_URL}?${params}`, { credentials: 'omit' });
       if (!res.ok) throw new Error("GAS 回應錯誤 " + res.status);
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "查詢失敗");
@@ -1038,6 +1038,7 @@
     async function proxyPost(action, payload) {
       const res = await fetch(GAS_URL, {
         method: "POST",
+        credentials: "omit",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ source: "admin", action, ...payload }),
       });
@@ -1054,6 +1055,7 @@
     async function proxyAction(action, payload) {
       const res = await fetch(GAS_URL, {
         method: "POST",
+        credentials: "omit",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ source: "public", action, ...payload }),
       });
@@ -1295,7 +1297,7 @@
     // 若你的 GAS 還沒有這個 action，見下方的 GAS 新增說明
     async function loadConfig() {
       try {
-        const res = await fetch(`${GAS_URL}?action=getConfig`);
+        const res = await fetch(`${GAS_URL}?action=getConfig`, { credentials: "omit" });
         const data = await res.json();
         if (data.ok) {
           appConfig = data.config;
@@ -1379,7 +1381,7 @@
           <div class="img-car">
             <div class="img-track">
               <div class="img-slide" style="background:var(--rose-l);">
-                ${imgUrl ? `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;" alt="${name}" onerror="this.style.display='none'">` : `<div style="font-size:32px;">💐</div><div style="font-size:12px;font-weight:500;color:var(--rose-t);">${name}</div>`}
+                ${imgUrl ? `<img src="${imgUrl}" style="width:100%;height:100%;object-fit:cover;" alt="${name}" onerror="this.style.display='none'">` : `<div style="width:100%;height:100%;background:linear-gradient(135deg,var(--rose-l) 0%,var(--sand-l,#ede6db) 100%);display:flex;align-items:center;justify-content:center;"><span style=\"font-size:13px;font-weight:500;color:var(--rose-t);padding:8px;text-align:center;\">${name}</span></div>`}
               </div>
             </div>
           </div>

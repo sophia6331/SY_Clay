@@ -121,7 +121,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
     <div class="bind-notice">
       <div style="font-size:32px;margin-bottom:10px;">📱</div>
       <p>請先加入 LINE 官方帳號並完成綁定，<br>才能查看及管理報名紀錄。</p>
-      <a id="line-link" href="#" class="btn-main" style="text-decoration:none;display:block;text-align:center;">前往加入 LINE</a>
+      <a id="line-link" href="https://lin.ee/uBSHQQb" class="btn-main" style="text-decoration:none;display:block;text-align:center;">前往加入 LINE</a>
     </div>
     <div style="font-size:12px;color:var(--text2);text-align:center;line-height:1.8;">
       加入後在 LINE 輸入：<br><strong>綁定 孩子名字 生日</strong>
@@ -264,7 +264,7 @@ const cancelPropsMap = {};
 
 document.addEventListener("DOMContentLoaded", async ()=>{
   // 取得 LINE OA 連結（由 index.html 存入的 localStorage）
-  const oaUrl = localStorage.getItem("sy_line_oa_url") || "#";
+  const oaUrl = localStorage.getItem("sy_line_oa_url") || "https://lin.ee/uBSHQQb";
   document.getElementById("line-link").href = oaUrl;
 
   if (!lineUID) { document.getElementById("v-unbound").style.display=""; return; }
