@@ -1113,8 +1113,9 @@
         console.warn("LIFF init skipped:", e.message || e);
       }
       // 處理來自 children/register 的跳轉：取得 UID 後自動跳回
-      const redirectTo = new URLSearchParams(location.search).get("redirect");
+      const redirectTo = localStorage.getItem("sy_liff_redirect");
       if (redirectTo && getLineUID()) {
+        localStorage.removeItem("sy_liff_redirect");
         const uid = getLineUID();
         const allowed = { children: "children.html", register: "register.html" };
         const target = allowed[redirectTo];

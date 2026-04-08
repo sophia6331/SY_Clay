@@ -267,13 +267,14 @@ document.addEventListener("DOMContentLoaded", async ()=>{
   document.getElementById("line-link").href = oaUrl;
 
   if (!lineUID) {
-    // LINE 瀏覽器內：自動跳轉 LIFF 取得身份後跳回
+    // LINE 瀏覽器內：暫存跳轉目標，跳到 LIFF 取得身份後自動回來
     if(/Line/i.test(navigator.userAgent)){
-      window.location.replace(LIFF_URL + "?redirect=register");
+      localStorage.setItem("sy_liff_redirect", "register");
+      window.location.replace(LIFF_URL);
       return;
     }
     document.getElementById("v-unbound").style.display="";
-    document.getElementById("liff-open-btn").href = LIFF_URL + "?redirect=register";
+    document.getElementById("liff-open-btn").href = LIFF_URL;
     return;
   }
   document.getElementById("v-bound").style.display="";
