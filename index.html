@@ -835,6 +835,7 @@
       white-space: pre-line;
     }
   </style>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 
 <body>
@@ -1087,21 +1088,34 @@
       return `${y}歲${m}個月`;
     }
 
-    // ── 家長身份識別 ─────────────────────────────────────────────
-    // 公開網站透過 LINE UID 識別家長，UID 存在 localStorage
-    // 家長第一次用 LINE 綁定後，GAS 會在 redirect 時傳入 UID
-    // 或由後台設定（如 URL 參數 ?uid=xxx 供測試）
+    // ── 家長身份識別（LIFF + URL param + localStorage）──────────
+    const LIFF_ID = "2009732717-1xMSvGEl";
     function getLineUID() { return localStorage.getItem("sy_line_uid") || null; }
     function setLineUID(uid) { localStorage.setItem("sy_line_uid", uid); }
 
-    // 從 URL 參數取得 uid（供 LINE LIFF 或測試用）
-    (function initUID() {
+    // 1) URL 參數優先（GAS 綁定成功後 redirect 帶入）
+    (function initUIDFromURL() {
       const u = new URLSearchParams(location.search).get("uid");
       if (u) setLineUID(u);
     })();
 
+    // 2) LIFF 初始化（LINE 瀏覽器內自動取得 UID）
+    async function initLiff() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        if (liff.isInClient() || liff.isLoggedIn()) {
+          const profile = await liff.getProfile();
+          if (profile && profile.userId) {
+            setLineUID(profile.userId);
+          }
+        }
+      } catch (e) {
+        console.warn("LIFF init skipped:", e.message || e);
+      }
+    }
+
     // 導航連結自動帶上 uid 參數
-    (function updateNavLinks() {
+    function updateNavLinks() {
       const uid = getLineUID();
       if (!uid) return;
       document.querySelectorAll("#nav-links a.nl").forEach(a => {
@@ -1110,7 +1124,7 @@
           a.href = href + (href.includes("?") ? "&" : "?") + "uid=" + encodeURIComponent(uid);
         }
       });
-    })();
+    }
 
 
     // ── 全域快取 ───────────────────────────────────────────────────
@@ -1119,7 +1133,7 @@
     let scheduleData = {};    // { dayNum: {start,end,cap,paused,pauseMsg,closed,label} }
     let myChildren = [];     // 家長名下孩子
     let myParentId = null;
-    const lineUID = getLineUID();
+    let lineUID = getLineUID();
 
     function getImgUrl(url) {
       if (!url) return "";
@@ -1130,7 +1144,7 @@
         const m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
         if (m2) id = m2[1];
       }
-      if (id) return `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
+      if (id) return `https://lh3.googleusercontent.com/d/${id}=w1000`;
       return url;
     }
 
@@ -1727,7 +1741,12 @@
     function showErr(id, msg) { const el = document.getElementById(id); el.textContent = "⚠ " + msg; el.style.display = ""; }
 
     // ── 初始化 ────────────────────────────────────────────────────
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
+      // LIFF 初始化 → 取得 LINE UID
+      await initLiff();
+      lineUID = getLineUID();
+      updateNavLinks();
+
       loadConfig();
       loadHeroSlides();
       loadThemeReal();

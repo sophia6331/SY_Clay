@@ -97,6 +97,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .av.c2{background:var(--sand-l);color:var(--sand-t);}
 .child-card{border:0.5px solid var(--border);border-radius:var(--r-lg);padding:12px 14px;margin-bottom:10px;}
 </style>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
 <div class="page">
@@ -259,25 +260,36 @@ function calcAge(b) {
   return `${y}歲${m}個月`;
 }
 
-// ── 家長身份識別 ─────────────────────────────────────────────
-// 公開網站透過 LINE UID 識別家長，UID 存在 localStorage
-// 家長第一次用 LINE 綁定後，GAS 會在 redirect 時傳入 UID
-// 或由後台設定（如 URL 參數 ?uid=xxx 供測試）
+// ── 家長身份識別（LIFF + URL param + localStorage）──────────
+const LIFF_ID = "2009732717-1xMSvGEl";
 function getLineUID() { return localStorage.getItem("sy_line_uid") || null; }
 function setLineUID(uid) { localStorage.setItem("sy_line_uid", uid); }
 
-// 從 URL 參數取得 uid（供 LINE LIFF 或測試用）
-(function initUID() {
+// 1) URL 參數優先
+(function initUIDFromURL() {
   const u = new URLSearchParams(location.search).get("uid");
   if (u) setLineUID(u);
 })();
 
+// 2) LIFF 初始化
+async function initLiff() {
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (liff.isInClient() || liff.isLoggedIn()) {
+      const profile = await liff.getProfile();
+      if (profile && profile.userId) setLineUID(profile.userId);
+    }
+  } catch (e) { console.warn("LIFF init skipped:", e.message || e); }
+}
 
-const lineUID=getLineUID();
+let lineUID = getLineUID();
 let myParentId=null, myChildren=[], pendingNew=null;
 const AC=["c0","c1","c2"];
 
 document.addEventListener("DOMContentLoaded", async ()=>{
+  await initLiff();
+  lineUID = getLineUID();
+
   const oaUrl=localStorage.getItem("sy_line_oa_url")||"https://lin.ee/uBSHQQb";
   document.getElementById("line-link").href=oaUrl;
   if(!lineUID){ document.getElementById("v-unbound").style.display=""; return; }
