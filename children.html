@@ -279,8 +279,13 @@ document.addEventListener("DOMContentLoaded", async ()=>{
   const oaUrl=localStorage.getItem("sy_line_oa_url")||"https://lin.ee/uBSHQQb";
   document.getElementById("line-link").href=oaUrl;
   if(!lineUID){
+    // LINE 瀏覽器內：自動跳轉 LIFF 取得身份後跳回
+    if(/Line/i.test(navigator.userAgent)){
+      window.location.replace(LIFF_URL + "?redirect=children");
+      return;
+    }
     document.getElementById("v-unbound").style.display="";
-    document.getElementById("liff-open-btn").href = LIFF_URL;
+    document.getElementById("liff-open-btn").href = LIFF_URL + "?redirect=children";
     return;
   }
   document.getElementById("v-bound").style.display="";

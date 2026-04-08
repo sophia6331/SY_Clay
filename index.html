@@ -1112,6 +1112,17 @@
       } catch (e) {
         console.warn("LIFF init skipped:", e.message || e);
       }
+      // 處理來自 children/register 的跳轉：取得 UID 後自動跳回
+      const redirectTo = new URLSearchParams(location.search).get("redirect");
+      if (redirectTo && getLineUID()) {
+        const uid = getLineUID();
+        const allowed = { children: "children.html", register: "register.html" };
+        const target = allowed[redirectTo];
+        if (target) {
+          window.location.replace(target + "?uid=" + encodeURIComponent(uid));
+          return;
+        }
+      }
     }
 
     // 導航連結自動帶上 uid 參數
