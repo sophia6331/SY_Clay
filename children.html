@@ -199,7 +199,7 @@ async function proxyQuery(dbId, filter = null, sorts = null) {
   const params = new URLSearchParams({ action: "query", db: dbId });
   if (filter) params.set("filter", JSON.stringify(filter));
   if (sorts)  params.set("sorts",  JSON.stringify(sorts));
-  const res = await fetch(`${GAS_URL}?${params}`);
+  const res = await fetch(`${GAS_URL}?${params}`, { credentials: 'omit' });
   if (!res.ok) throw new Error("GAS 回應錯誤 " + res.status);
   const data = await res.json();
   if (!data.ok) throw new Error(data.error || "查詢失敗");
@@ -213,6 +213,7 @@ async function proxyQuery(dbId, filter = null, sorts = null) {
 async function proxyPost(action, payload) {
   const res = await fetch(GAS_URL, {
     method: "POST",
+    credentials: "omit",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ source: "admin", action, ...payload }),
   });
@@ -229,6 +230,7 @@ async function proxyPost(action, payload) {
 async function proxyAction(action, payload) {
   const res = await fetch(GAS_URL, {
     method: "POST",
+    credentials: "omit",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ source: "public", action, ...payload }),
   });

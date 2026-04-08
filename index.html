@@ -920,7 +920,7 @@
           <div class="fg">
             <label class="fl">孩子</label>
             <div id="reg-child-area">
-              <div style="font-size:12px;color:var(--text2);">請先透過 LINE 綁定帳號後才能報名</div>
+              <div style="font-size:12px;color:var(--text2);">載入中…</div>
             </div>
           </div>
           <button class="btn-main" id="regBtn" onclick="submitReg()">送出報名</button>
@@ -1101,34 +1101,17 @@
 
     // 2) LIFF 初始化（LINE 瀏覽器內自動取得 UID）
     async function initLiff() {
-      var dbg = []; // debug 資訊收集
       try {
         await liff.init({ liffId: LIFF_ID });
-        dbg.push("init: OK");
-        dbg.push("isInClient: " + liff.isInClient());
-        dbg.push("isLoggedIn: " + liff.isLoggedIn());
-        dbg.push("OS: " + (liff.getOS ? liff.getOS() : "N/A"));
         if (liff.isInClient() || liff.isLoggedIn()) {
-          try {
-            const profile = await liff.getProfile();
-            dbg.push("profile: " + JSON.stringify({ userId: profile.userId, name: profile.displayName }));
-            if (profile && profile.userId) {
-              setLineUID(profile.userId);
-            }
-          } catch (pe) {
-            dbg.push("getProfile ERROR: " + (pe.message || pe));
+          const profile = await liff.getProfile();
+          if (profile && profile.userId) {
+            setLineUID(profile.userId);
           }
-        } else {
-          dbg.push("SKIP getProfile (not in client & not logged in)");
         }
       } catch (e) {
-        dbg.push("init ERROR: " + (e.message || e));
+        console.warn("LIFF init skipped:", e.message || e);
       }
-      dbg.push("final UID: " + (getLineUID() || "null"));
-      dbg.push("UA: " + navigator.userAgent.substring(0, 80));
-      // 顯示 debug 區塊（正式上線後刪除）
-      var dd = document.getElementById("liff-debug");
-      if (dd) dd.textContent = dbg.join("\n");
 
       // 處理來自 children/register 的跳轉：取得 UID 後自動跳回
       const redirectTo = localStorage.getItem("sy_liff_redirect");
@@ -1542,11 +1525,11 @@
     async function loadThemeChildren(idx) {
       const area = document.getElementById("tf-child-area-" + idx);
       if (!area) return;
-      if (!lineUID) { area.innerHTML = `<div style="font-size:12px;color:var(--text2);">請先透過 LINE 綁定帳號</div>`; return; }
+      if (!lineUID) { area.innerHTML = `<div style="font-size:12px;color:var(--text2);">請先<a href="https://liff.line.me/2009732717-1xMSvGEl" style="color:var(--sage);text-decoration:underline;">用 LINE 開啟官網</a>以識別身份</div>`; return; }
       try {
         if (!myParentId) await loadMyParent();
-        if (!myParentId) { area.innerHTML = `<div style="font-size:12px;color:var(--text2);">帳號尚未綁定</div>`; return; }
-        if (myChildren.length === 0) { area.innerHTML = `<div style="font-size:12px;color:var(--text2);">名下尚無孩子</div>`; return; }
+        if (!myParentId) { area.innerHTML = `<div style="font-size:12px;color:var(--text2);">記得先<a href="children.html?uid=${encodeURIComponent(lineUID)}" style="color:var(--sage);text-decoration:underline;">新增小孩</a>再來報名課程唷！</div>`; return; }
+        if (myChildren.length === 0) { area.innerHTML = `<div style="font-size:12px;color:var(--text2);">記得先<a href="children.html?uid=${encodeURIComponent(lineUID)}" style="color:var(--sage);text-decoration:underline;">新增小孩</a>再來報名課程唷！</div>`; return; }
         if (myChildren.length === 1) {
           const n = myChildren[0].properties["暱稱"]?.title?.[0]?.text?.content || "";
           area.innerHTML = `<div class="child-static" id="tf-child-single-${idx}">${n}</div>`;
@@ -1559,7 +1542,7 @@
     }
     async function submitTheme(idx) {
       const child = getMyChild("tf-child-sel-" + idx, "tf-child-single-" + idx);
-      if (!child) { showErr("tf-err-" + idx, "請先透過 LINE 綁定帳號"); return; }
+      if (!child) { showErr("tf-err-" + idx, "請先選擇小朋友再報名"); return; }
       const note = document.getElementById("tf-note-" + idx)?.value || "";
       const btn = document.getElementById("tf-btn-" + idx);
       btn.disabled = true; btn.textContent = "報名中…";
@@ -1720,11 +1703,11 @@
     }
     async function loadRegChildren() {
       const area = document.getElementById("reg-child-area");
-      if (!lineUID) return;
+      if (!lineUID) { area.innerHTML = `<div style="font-size:12px;color:var(--text2);">請先<a href="https://liff.line.me/2009732717-1xMSvGEl" style="color:var(--sage);text-decoration:underline;">用 LINE 開啟官網</a>以識別身份</div>`; return; }
       try {
         if (!myParentId) await loadMyParent();
-        if (!myParentId) return;
-        if (myChildren.length === 0) { area.innerHTML = `<div style="font-size:12px;color:var(--text2);">名下尚無孩子</div>`; return; }
+        if (!myParentId) { area.innerHTML = `<div style="font-size:12px;color:var(--text2);">記得先<a href="children.html?uid=${encodeURIComponent(lineUID)}" style="color:var(--sage);text-decoration:underline;">新增小孩</a>再來報名課程唷！</div>`; return; }
+        if (myChildren.length === 0) { area.innerHTML = `<div style="font-size:12px;color:var(--text2);">記得先<a href="children.html?uid=${encodeURIComponent(lineUID)}" style="color:var(--sage);text-decoration:underline;">新增小孩</a>再來報名課程唷！</div>`; return; }
         if (myChildren.length === 1) {
           const n = myChildren[0].properties["暱稱"]?.title?.[0]?.text?.content || "";
           area.innerHTML = `<div class="child-static" id="reg-child-single">${n}</div>`;
@@ -1749,7 +1732,7 @@
     }
     async function submitReg() {
       const child = getMyChild("reg-child-sel", "reg-child-single");
-      if (!child) { showErr("reg-err", "請先透過 LINE 綁定帳號"); return; }
+      if (!child) { showErr("reg-err", "請先選擇小朋友再報名"); return; }
       const dn = getCurrentDN(); const W = ["", "週一", "週二", "週三", "週四", "週五", "週六", "週日"];
       const slot = document.getElementById("selSlot").value;
       const weekly = document.getElementById("cbWeekly").checked;
@@ -1786,8 +1769,6 @@
       loadPlans();
     });
   </script>
-<!-- LIFF Debug（正式上線後刪除此區塊） -->
-<pre id="liff-debug" style="margin:20px 16px;padding:12px;background:#f0f0f0;border-radius:8px;font-size:11px;color:#333;white-space:pre-wrap;word-break:break-all;">LIFF loading...</pre>
 </body>
 
 </html>
