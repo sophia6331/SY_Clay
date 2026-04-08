@@ -1101,17 +1101,35 @@
 
     // 2) LIFF 初始化（LINE 瀏覽器內自動取得 UID）
     async function initLiff() {
+      var dbg = []; // debug 資訊收集
       try {
         await liff.init({ liffId: LIFF_ID });
+        dbg.push("init: OK");
+        dbg.push("isInClient: " + liff.isInClient());
+        dbg.push("isLoggedIn: " + liff.isLoggedIn());
+        dbg.push("OS: " + (liff.getOS ? liff.getOS() : "N/A"));
         if (liff.isInClient() || liff.isLoggedIn()) {
-          const profile = await liff.getProfile();
-          if (profile && profile.userId) {
-            setLineUID(profile.userId);
+          try {
+            const profile = await liff.getProfile();
+            dbg.push("profile: " + JSON.stringify({ userId: profile.userId, name: profile.displayName }));
+            if (profile && profile.userId) {
+              setLineUID(profile.userId);
+            }
+          } catch (pe) {
+            dbg.push("getProfile ERROR: " + (pe.message || pe));
           }
+        } else {
+          dbg.push("SKIP getProfile (not in client & not logged in)");
         }
       } catch (e) {
-        console.warn("LIFF init skipped:", e.message || e);
+        dbg.push("init ERROR: " + (e.message || e));
       }
+      dbg.push("final UID: " + (getLineUID() || "null"));
+      dbg.push("UA: " + navigator.userAgent.substring(0, 80));
+      // 顯示 debug 區塊（正式上線後刪除）
+      var dd = document.getElementById("liff-debug");
+      if (dd) dd.textContent = dbg.join("\n");
+
       // 處理來自 children/register 的跳轉：取得 UID 後自動跳回
       const redirectTo = localStorage.getItem("sy_liff_redirect");
       if (redirectTo && getLineUID()) {
@@ -1768,6 +1786,8 @@
       loadPlans();
     });
   </script>
+<!-- LIFF Debug（正式上線後刪除此區塊） -->
+<pre id="liff-debug" style="margin:20px 16px;padding:12px;background:#f0f0f0;border-radius:8px;font-size:11px;color:#333;white-space:pre-wrap;word-break:break-all;">LIFF loading...</pre>
 </body>
 
 </html>
