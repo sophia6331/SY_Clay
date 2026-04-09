@@ -308,12 +308,12 @@ async function loadRegList() {
     const childNameMap={};
     myChildren.forEach(c=>{ childNameMap[c.id]=c.properties["暱稱"]?.title?.[0]?.text?.content||""; });
 
-    // 查未來的常態課程
-    const futureSess=await proxyQuery("NOTION_DB_SESSION",{property:"日期",date:{on_or_after:today()}});
+    // 同時查詢常態課程 + 主題課程（並行，節省一半等待時間）
+    const [futureSess, themes] = await Promise.all([
+      proxyQuery("NOTION_DB_SESSION",{property:"日期",date:{on_or_after:today()}}),
+      proxyQuery("NOTION_DB_THEME",{property:"報名狀態",select:{equals:"開放"}}),
+    ]);
     const mySess=futureSess.filter(s=>(s.properties["出席孩子"]?.relation||[]).some(r=>childIds.has(r.id)));
-
-    // 查開放中的主題課程
-    const themes=await proxyQuery("NOTION_DB_THEME",{property:"報名狀態",select:{equals:"開放"}});
     const myThemes=themes.filter(t=>{
       const list=t.properties["報名名單"]?.rich_text?.[0]?.text?.content||"";
       return [...childIds].some(id=>list.includes(childNameMap[id]));
