@@ -850,6 +850,7 @@
         <a class="nl on" href="index.html">首頁</a>
         <a class="nl " href="register.html">報名</a>
         <a class="nl " href="children.html">孩子</a>
+        <a class="nl " href="photos.html">相簿</a>
       </div>
     </nav>
 
@@ -1118,7 +1119,7 @@
       if (redirectTo && getLineUID()) {
         localStorage.removeItem("sy_liff_redirect");
         const uid = getLineUID();
-        const allowed = { children: "children.html", register: "register.html" };
+        const allowed = { children: "children.html", register: "register.html", photos: "photos.html" };
         const target = allowed[redirectTo];
         if (target) {
           window.location.replace(target + "?uid=" + encodeURIComponent(uid));
@@ -1771,4 +1772,4 @@
   </script>
 </body>
 
-<
+<            
