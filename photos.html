@@ -113,8 +113,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
     <div id="photos-empty" style="display:none;">
       <div class="empty-box">
         <div class="empty-icon">🖼️</div>
-        <div class="empty-msg">還沒有課程照片</div>
-        <div class="empty-sub">老師上傳照片後會在這裡出現</div>
+        <div class="empty-msg">還沒有照片唷！</div>
+        <div class="empty-sub" style="margin-bottom:16px;">上課後老師會新增照片</div>
+        <a href="index.html" id="empty-register-btn"
+           style="display:inline-block;padding:10px 22px;background:var(--sage);color:#fff;font-size:13px;font-weight:500;border-radius:999px;text-decoration:none;">
+          報名課程
+        </a>
       </div>
     </div>
   </div>
@@ -277,12 +281,20 @@ async function switchChild(child, tabEl) {
   emptyEl.style.display = "none";
 
   try {
-    // 查詢此孩子的照片（以照片分類 Select = 孩子名稱 過濾）
-    const photos = await proxyQuery(
-      "NOTION_DB_PHOTO",
-      { property: "照片分類", select: { equals: childName } },
-      [{ property: "關聯課程", direction: "descending" }]
-    );
+    // 查詢此孩子的照片（優先用「關聯孩子」relation，回退到「照片分類」Select）
+    let photos = [];
+    try {
+      photos = await proxyQuery(
+        "NOTION_DB_PHOTO",
+        { property: "關聯孩子", relation: { contains: child.id } }
+      );
+    } catch (e1) {
+      // 若 Notion DB 尚未建立「關聯孩子」欄位，退回舊邏輯
+      photos = await proxyQuery(
+        "NOTION_DB_PHOTO",
+        { property: "照片分類", select: { equals: childName } }
+      );
+    }
 
     // 同時查詢 Session 以取得日期
     const sessionIds = [...new Set(
@@ -352,7 +364,10 @@ async function switchChild(child, tabEl) {
     contentEl.appendChild(sec);
 
   } catch (e) {
-    contentEl.innerHTML = `<div class="loading">⚠ 載入失敗：${e.message}</div>`;
+    console.error("載入照片失敗：", e);
+    // 查詢失敗時也顯示空狀態（避免單一欄位名錯誤就整頁壞掉）
+    contentEl.style.display = "none";
+    emptyEl.style.display = "";
   }
 }
 

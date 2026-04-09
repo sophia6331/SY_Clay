@@ -330,6 +330,10 @@ async function loadRegList() {
     loadEl.style.display="none";
     if(mySess.length===0&&myThemes.length===0) { emptyEl.style.display=""; return; }
 
+    // 判斷「是否已過期」：日期 < 今天就不能取消
+    const todayStr = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
+    const isPast = (d) => d && d < todayStr;
+
     // 主題課程報名
     myThemes.forEach(t=>{
       const name=t.properties["課程名稱"]?.title?.[0]?.text?.content||"";
@@ -339,14 +343,16 @@ async function loadRegList() {
       const myNames=[...childIds].map(id=>childNameMap[id]).filter(n=>listR.includes(n));
       const newListR=listR.split(/[、, \n]+/).filter(n=>n.trim()&&!myNames.includes(n.trim())).join("、");
       cancelPropsMap[t.id]={"報名名單":{rich_text:[{text:{content:newListR}}]}};
+      const past = isPast((dStr||"").slice(0,10));
+      const btnHtml = past
+        ? `<button class="ri-btn red" disabled title="已開始/結束的課程無法取消" style="opacity:.45;cursor:not-allowed;">已結束</button>`
+        : `<button class="ri-btn red" onclick="showCancel('${t.id}','${name}','${myNames.join("、")}')">取消報名</button>`;
       const item=document.createElement("div"); item.className="reg-item";
       item.innerHTML=`<div class="ri-head">
         <div class="ri-title">${dStr?formatDate(dStr)+"　":""}${name}</div>
         <span class="tag rose">主題課程</span></div>
         <div class="ri-sub">孩子：${myNames.join("、")} · 扣 ${deduct} 堂</div>
-        <div class="ri-actions">
-          <button class="ri-btn red" onclick="showCancel('${t.id}','${name}','${myNames.join("、")}')">取消報名</button>
-        </div>`;
+        <div class="ri-actions">${btnHtml}</div>`;
       listEl.appendChild(item);
     });
 
@@ -360,14 +366,16 @@ async function loadRegList() {
       const myKids=myKidsRel.filter(r=>childIds.has(r.id)).map(r=>childNameMap[r.id]||"");
       const newKidsRel=myKidsRel.filter(r=>!childIds.has(r.id));
       cancelPropsMap[s.id]={"出席孩子":{relation:newKidsRel}};
+      const past = isPast((dStr||"").slice(0,10));
+      const btnHtml = past
+        ? `<button class="ri-btn red" disabled title="已開始/結束的課程無法取消" style="opacity:.45;cursor:not-allowed;">已結束</button>`
+        : `<button class="ri-btn red" onclick="showCancel('${s.id}','${formatDate(dStr)}','${myKids.join("、")}')">取消報名</button>`;
       const item=document.createElement("div"); item.className="reg-item";
       item.innerHTML=`<div class="ri-head">
         <div class="ri-title">${formatDate(dStr)}　一般課程</div>
         <span class="tag sage">常態課程</span></div>
         <div class="ri-sub">孩子：${myKids.join("、")} · ${slot} · 扣 ${deduct} 堂</div>
-        <div class="ri-actions">
-          <button class="ri-btn red" onclick="showCancel('${s.id}','${formatDate(dStr)}','${myKids.join("、")}')">取消報名</button>
-        </div>`;
+        <div class="ri-actions">${btnHtml}</div>`;
       listEl.appendChild(item);
     });
   } catch(e) { loadEl.textContent="⚠ 載入失敗："+e.message; }
