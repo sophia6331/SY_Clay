@@ -1458,6 +1458,9 @@
       });
     }
 
+    // childId → File[]：在 JS 中暫存照片，避免 input 重新渲染時遺失
+    const childPhotosMap = new Map();
+
     function renderChips() {
       const wrap = document.getElementById("selected-chips");
       const placeholder = document.getElementById("chips-placeholder");
@@ -1476,26 +1479,39 @@
         const name = c.properties["暱稱"]?.title?.[0]?.text?.content || "?";
         const chip = document.createElement("span");
         chip.className = "chip";
-        chip.innerHTML = `${name}<button onclick="removeChild('${id}',event)">✕</button>`;
+        chip.style.cursor = "pointer";
+        chip.title = "點此移除";
+        chip.innerHTML = `${name}<button type="button" tabindex="-1">✕</button>`;
+        // 讓整顆 chip 可點擊刪除（解決 X 按鈕點擊區太小或被父層 onclick 攔截的問題）
+        chip.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          ev.preventDefault();
+          selectedChildIds.delete(id);
+          childPhotosMap.delete(id);
+          renderChips();
+          renderDropdown();
+        });
         wrap.insertBefore(chip, placeholder);
       });
       renderChildPhotoSections();
     }
 
-    /** 依已選孩子動態產生各自的照片上傳區 */
+    /** 依已選孩子動態產生各自的照片上傳區（保留已上傳的檔案） */
     function renderChildPhotoSections() {
       const container = document.getElementById("child-photo-sections");
       if (!container) return;
 
-      // 保留已選擇的檔案（重新渲染時不清空 input）
-      const existingFiles = {};
-      selectedChildIds.forEach(id => {
-        const inp = document.getElementById("photo-" + id);
-        if (inp && inp.files.length > 0) existingFiles[id] = inp.files;
-      });
-
       container.innerHTML = "";
-      if (selectedChildIds.size === 0) return;
+      if (selectedChildIds.size === 0) {
+        // 若全部移除，順手清空 map
+        childPhotosMap.clear();
+        return;
+      }
+
+      // 移除不再被選的孩子在 map 中的資料
+      Array.from(childPhotosMap.keys()).forEach(k => {
+        if (!selectedChildIds.has(k)) childPhotosMap.delete(k);
+      });
 
       const header = document.createElement("div");
       header.innerHTML = `<div class="divline"></div><div class="ct" style="margin-bottom:8px;">課程照片（每位孩子可上傳多張）</div>`;
@@ -1515,21 +1531,61 @@
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
             <div class="av ${avCls}" style="width:24px;height:24px;font-size:10px;">${name[0]||"?"}</div>
             <span style="font-size:13px;font-weight:500;">${name}</span>
-            <span style="font-size:11px;color:var(--text3);">的照片（選填）</span>
+            <span style="font-size:11px;color:var(--text3);" id="cnt-${id}">的照片（選填）</span>
           </div>
-          <input type="file" class="fi" id="photo-${id}" accept="image/*" multiple style="padding:4px 6px;"
-                 onchange="previewPhotos(this,'prev-${id}')">
+          <input type="file" class="fi" id="photo-${id}" accept="image/*" multiple style="padding:4px 6px;">
           <div id="prev-${id}" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
         `;
         container.appendChild(section);
+
+        // 綁定 onchange：把檔案累加到 map（不是覆蓋，這樣分次選擇也能保留）
+        const inp = section.querySelector("#photo-" + id);
+        inp.addEventListener("change", () => {
+          const existing = childPhotosMap.get(id) || [];
+          const merged = existing.concat(Array.from(inp.files));
+          childPhotosMap.set(id, merged);
+          inp.value = ""; // 清空 input，讓下一次仍可觸發 change
+          renderChildPhotoPreview(id);
+        });
+
+        // 顯示已存在的預覽（重新渲染後保留）
+        renderChildPhotoPreview(id);
       });
     }
 
-    function removeChild(id, e) {
-      e.stopPropagation();
-      selectedChildIds.delete(id);
-      renderChips();
-      renderDropdown();
+    /** 從 map 重新渲染指定孩子的縮圖預覽 */
+    function renderChildPhotoPreview(childId) {
+      const preview = document.getElementById("prev-" + childId);
+      const cnt = document.getElementById("cnt-" + childId);
+      if (!preview) return;
+      preview.innerHTML = "";
+      const files = childPhotosMap.get(childId) || [];
+      if (cnt) cnt.textContent = files.length > 0 ? `已選 ${files.length} 張` : "的照片（選填）";
+      files.forEach((file, fi) => {
+        const wrap = document.createElement("span");
+        wrap.style.cssText = "position:relative;display:inline-block;";
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = document.createElement("img");
+          img.src = e.target.result;
+          img.style.cssText = "width:64px;height:64px;object-fit:cover;border-radius:6px;border:0.5px solid var(--border);display:block;";
+          wrap.appendChild(img);
+          const x = document.createElement("span");
+          x.textContent = "✕";
+          x.title = "移除這張";
+          x.style.cssText = "position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;";
+          x.addEventListener("click", (ev) => {
+            ev.stopPropagation();
+            const arr = childPhotosMap.get(childId) || [];
+            arr.splice(fi, 1);
+            childPhotosMap.set(childId, arr);
+            renderChildPhotoPreview(childId);
+          });
+          wrap.appendChild(x);
+        };
+        reader.readAsDataURL(file);
+        preview.appendChild(wrap);
+      });
     }
 
     // ── 新增課程紀錄 ─────────────────────────────────────────────
@@ -1569,13 +1625,12 @@
         const sessionResult = await notionCreate(CONFIG.NOTION_DB_SESSION, props);
         const sessionPageId = sessionResult.id;
 
-        // 2. 上傳各孩子照片並建立 Photo 記錄
+        // 2. 上傳各孩子照片並建立 Photo 記錄（從 childPhotosMap 讀取，避免 input 遺失）
         let photoCount = 0;
         for (const childId of selectedChildIds) {
-          const inp = document.getElementById("photo-" + childId);
-          if (!inp || inp.files.length === 0) continue;
+          const files = childPhotosMap.get(childId) || [];
+          if (files.length === 0) continue;
           const childName = allChildren.find(c => c.id === childId)?.properties["暱稱"]?.title?.[0]?.text?.content || "";
-          const files = Array.from(inp.files);
 
           for (let fi = 0; fi < files.length; fi++) {
             btn.textContent = `上傳照片中… (${++photoCount})`;
@@ -1584,6 +1639,7 @@
             await notionCreate(CONFIG.NOTION_DB_PHOTO, {
               "照片 ID": { title: [{ text: { content: photoTitleId } }] },
               "關聯課程": { relation: [{ id: sessionPageId }] },
+              "關聯孩子": { relation: [{ id: childId }] },
               "Google Drive URL": { url: url },
               "照片分類": { select: { name: childName || "其他" } },
             });
@@ -1600,6 +1656,7 @@
         document.getElementById("add-deduct").value = "1";
         document.getElementById("add-note").value = "";
         selectedChildIds.clear();
+        childPhotosMap.clear();
         renderChips();
         renderDropdown();
 
