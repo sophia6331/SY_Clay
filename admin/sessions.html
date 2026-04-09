@@ -583,7 +583,7 @@
           <div class="card">
             <div class="cardtop">
               <span class="ct">近期課程紀錄</span>
-              <button class="refresh-btn" onclick="loadSessions()">↻ 重新整理</button>
+              <button class="refresh-btn" onclick="clearNotionCache();loadSessions()">↻ 重新整理</button>
             </div>
             <div class="loading" id="sessions-loading">載入中…</div>
             <div id="sessions-list"></div>
@@ -598,7 +598,7 @@
           <div class="card">
             <div class="cardtop">
               <span class="ct">週課表設定</span>
-              <button class="refresh-btn" onclick="loadSchedule()">↻ 重新整理</button>
+              <button class="refresh-btn" onclick="clearNotionCache();loadSchedule()">↻ 重新整理</button>
             </div>
             <div class="loading" id="schedule-loading">載入中…</div>
             <div id="schedule-list"></div>
@@ -858,7 +858,36 @@
 
     // ── GAS Proxy API ─────────────────────────────────────────
 
+        // ── Notion 查詢快取（sessionStorage, TTL 60 秒） ─────────────
+    const NOTION_CACHE_TTL_MS = 60 * 1000;
+    function _cacheKey(dbId, filter, sorts) {
+      return "nq:" + dbId + ":" + JSON.stringify(filter || null) + ":" + JSON.stringify(sorts || null);
+    }
+    function _cacheGet(key) {
+      try {
+        const raw = sessionStorage.getItem(key);
+        if (!raw) return null;
+        const { t, v } = JSON.parse(raw);
+        if (Date.now() - t > NOTION_CACHE_TTL_MS) { sessionStorage.removeItem(key); return null; }
+        return v;
+      } catch (e) { return null; }
+    }
+    function _cacheSet(key, value) {
+      try { sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), v: value })); }
+      catch (e) { /* quota exceeded - ignore */ }
+    }
+    function clearNotionCache() {
+      try {
+        for (let i = sessionStorage.length - 1; i >= 0; i--) {
+          const k = sessionStorage.key(i);
+          if (k && k.startsWith("nq:")) sessionStorage.removeItem(k);
+        }
+      } catch (e) {}
+    }
     async function notionQuery(dbId, filter = null, sorts = null) {
+      const key = _cacheKey(dbId, filter, sorts);
+      const cached = _cacheGet(key);
+      if (cached) return cached;
       const url = new URL(CONFIG.GAS_URL);
       url.searchParams.set("action", "query");
       url.searchParams.set("db", dbId);
@@ -868,6 +897,7 @@
       if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "未知錯誤");
+      _cacheSet(key, data.results);
       return data.results;
     }
 
@@ -880,6 +910,7 @@
       if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "未知錯誤");
+      clearNotionCache();
       return data.result;
     }
 
@@ -892,6 +923,7 @@
       if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "未知錯誤");
+      clearNotionCache();
       return data.result;
     }
 
@@ -904,6 +936,7 @@
       if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "未知錯誤");
+      clearNotionCache();
       return data.result;
     }
 
@@ -1066,7 +1099,7 @@
           </div>
           <div style="margin-top:4px;">
             ${childNames.length > 0
-              ? childNames.map((n, i) => `<span class="tag ${["t", "pk", "s", "t", "pk"][i % 5]}">${n}</span>`).join("")
+              ? childNames.map(n => `<span class="tag s">${n}</span>`).join("")
               : `<span style="font-size:11px;color:var(--text3);">無出席孩子</span>`}
           </div>
           ${note ? `<div class="rsub">${note}</div>` : ""}

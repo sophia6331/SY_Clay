@@ -179,7 +179,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
         <div class="card">
           <div class="cardtop">
             <span class="ct">已結束的主題課程</span>
-            <button class="refresh-btn" onclick="loadHistory()">↻ 重新整理</button>
+            <button class="refresh-btn" onclick="clearNotionCache();loadHistory()">↻ 重新整理</button>
           </div>
           <div class="loading" id="history-loading">載入中…</div>
           <div id="history-list"></div>
@@ -423,16 +423,46 @@ const CONFIG = {
 
 // ── GAS Proxy API ─────────────────────────────────────────
 
+// ── Notion 查詢快取（sessionStorage, TTL 60 秒） ─────────────
+const NOTION_CACHE_TTL_MS = 60 * 1000;
+function _cacheKey(dbId, filter, sorts) {
+  return "nq:" + dbId + ":" + JSON.stringify(filter || null) + ":" + JSON.stringify(sorts || null);
+}
+function _cacheGet(key) {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const { t, v } = JSON.parse(raw);
+    if (Date.now() - t > NOTION_CACHE_TTL_MS) { sessionStorage.removeItem(key); return null; }
+    return v;
+  } catch (e) { return null; }
+}
+function _cacheSet(key, value) {
+  try { sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), v: value })); }
+  catch (e) { /* quota exceeded - ignore */ }
+}
+function clearNotionCache() {
+  try {
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const k = sessionStorage.key(i);
+      if (k && k.startsWith("nq:")) sessionStorage.removeItem(k);
+    }
+  } catch (e) {}
+}
 async function notionQuery(dbId, filter = null, sorts = null) {
+  const key = _cacheKey(dbId, filter, sorts);
+  const cached = _cacheGet(key);
+  if (cached) return cached;
   const url = new URL(CONFIG.GAS_URL);
   url.searchParams.set("action", "query");
   url.searchParams.set("db", dbId);
   if (filter) url.searchParams.set("filter", JSON.stringify(filter));
-  if (sorts)  url.searchParams.set("sorts", JSON.stringify(sorts));
+  if (sorts) url.searchParams.set("sorts", JSON.stringify(sorts));
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
   const data = await res.json();
   if (!data.ok) throw new Error(data.error || "未知錯誤");
+  _cacheSet(key, data.results);
   return data.results;
 }
 
@@ -445,6 +475,7 @@ async function notionCreate(dbId, properties) {
   if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
   const data = await res.json();
   if (!data.ok) throw new Error(data.error || "未知錯誤");
+      clearNotionCache();
   return data.result;
 }
 
@@ -457,6 +488,7 @@ async function notionUpdate(pageId, properties) {
   if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
   const data = await res.json();
   if (!data.ok) throw new Error(data.error || "未知錯誤");
+      clearNotionCache();
   return data.result;
 }
 
@@ -469,6 +501,7 @@ async function notionDelete(pageId) {
   if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
   const data = await res.json();
   if (!data.ok) throw new Error(data.error || "未知錯誤");
+      clearNotionCache();
   return data.result;
 }
 
