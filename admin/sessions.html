@@ -658,17 +658,13 @@
               <div class="child-dropdown" id="child-dropdown"></div>
             </div>
 
-            <div class="frow2" style="margin-bottom:10px;">
-              <div class="fg" style="margin-bottom:0;">
-                <label class="fl">備註</label>
-                <input class="fi" id="add-note" placeholder="如：下雨天人數較少">
-              </div>
-              <div class="fg" style="margin-bottom:0;">
-                <label class="fl">上傳圖片</label>
-                <input class="fi" id="add-photo" type="file" accept="image/*" style="padding:4px 6px;" onchange="previewPhoto(this,'add-photo-preview')">
-                <div id="add-photo-preview" style="margin-top:4px;"></div>
-              </div>
+            <div class="fg">
+              <label class="fl">備註</label>
+              <input class="fi" id="add-note" placeholder="如：下雨天人數較少">
             </div>
+
+            <!-- 每位孩子的照片上傳區（動態產生）-->
+            <div id="child-photo-sections"></div>
 
             <button class="abtn" id="add-btn" onclick="submitAddSession()">儲存課程紀錄</button>
           </div>
@@ -681,7 +677,10 @@
       <div class="view" id="v-detail">
         <div class="topbar">
           <button class="ilink" style="font-size:13px;" onclick="showView('v-main')">← 返回列表</button>
-          <button class="abtn g sm" onclick="confirmDelete()">刪除此紀錄</button>
+          <div style="display:flex;gap:8px;">
+            <button class="abtn sm" onclick="showEdit()">編輯</button>
+            <button class="abtn g sm" onclick="confirmDelete()">刪除</button>
+          </div>
         </div>
         <div class="card">
           <div class="loading" id="detail-loading">載入中…</div>
@@ -717,14 +716,77 @@
 
             <div class="divline"></div>
             <div class="ct" style="margin-bottom:6px;">備註</div>
-            <div id="detail-note" style="font-size:13px;color:var(--text2);white-space:pre-line;">—</div>
+            <div id="detail-note" style="font-size:13px;color:var(--text2);white-space:pre-line;margin-bottom:12px;">—</div>
+
+            <div class="divline"></div>
+            <div class="ct" style="margin-bottom:8px;">課程照片</div>
+            <div id="detail-photos" style="display:flex;flex-wrap:wrap;gap:8px;">
+              <div style="font-size:12px;color:var(--text3);" id="detail-photos-loading">載入中…</div>
+            </div>
 
           </div>
         </div>
       </div>
 
       <!-- ══════════════════════════════════
-         VIEW 4：編輯週課表
+         VIEW 4：編輯課程紀錄
+    ══════════════════════════════════ -->
+      <div class="view" id="v-edit">
+        <div class="topbar">
+          <button class="ilink" style="font-size:13px;" onclick="showView('v-detail')">← 返回詳細</button>
+        </div>
+        <div class="card">
+          <div class="ct" style="margin-bottom:12px;">編輯課程紀錄</div>
+          <div class="fbg">
+            <div id="edit-err" class="err" style="display:none;"></div>
+            <div id="edit-success" class="success" style="display:none;"></div>
+            <input type="hidden" id="edit-page-id">
+
+            <div class="frow2" style="margin-bottom:10px;">
+              <div class="fg" style="margin-bottom:0;">
+                <label class="fl">上課日期 *</label>
+                <input class="fi" id="edit-date" type="date">
+              </div>
+              <div class="fg" style="margin-bottom:0;">
+                <label class="fl">課程類型</label>
+                <select class="fi" id="edit-type">
+                  <option value="一般課程">一般課程</option>
+                  <option value="主題課程">主題課程</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="frow2" style="margin-bottom:10px;">
+              <div class="fg" style="margin-bottom:0;">
+                <label class="fl">時段</label>
+                <input class="fi" id="edit-slot" placeholder="如 16:30–18:00">
+              </div>
+              <div class="fg" style="margin-bottom:0;">
+                <label class="fl">扣除堂數</label>
+                <input class="fi" id="edit-deduct" type="number" min="0" step="0.5" value="1">
+              </div>
+            </div>
+
+            <div class="fg">
+              <label class="fl">出席孩子 *（可多選）</label>
+              <div class="child-sel-wrap" id="edit-selected-chips" onclick="toggleEditDropdown()">
+                <span style="font-size:12px;color:var(--text3);" id="edit-chips-placeholder">點擊選擇孩子…</span>
+              </div>
+              <div class="child-dropdown" id="edit-child-dropdown"></div>
+            </div>
+
+            <div class="fg">
+              <label class="fl">備註</label>
+              <input class="fi" id="edit-note" placeholder="如：下雨天人數較少">
+            </div>
+
+            <button class="abtn" id="edit-btn" onclick="submitEditSession()">儲存修改</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════
+         VIEW 5：編輯週課表
     ══════════════════════════════════ -->
       <div class="view" id="v-schedule-edit">
         <div class="topbar">
@@ -789,6 +851,7 @@
 
       NOTION_DB_SESSION: "338c38a5-6efe-80a0-9801-d9517c8431ef",
       NOTION_DB_CHILD: "338c38a5-6efe-802c-9ea8-edd4375e28c5",
+      NOTION_DB_PHOTO: "338c38a5-6efe-800a-ae57-d57cc1800456",
       NOTION_DB_SCHEDULE: "338c38a5-6efe-806e-ad05-eaadfcf1be61",
     };
     // ============================================================
@@ -882,18 +945,20 @@
       });
     }
 
-    /** 圖片預覽 */
-    function previewPhoto(input, previewId) {
+    /** 多張圖片預覽 */
+    function previewPhotos(input, previewId) {
       const preview = document.getElementById(previewId);
-      if (input.files && input.files[0]) {
+      preview.innerHTML = "";
+      Array.from(input.files).forEach(file => {
         const reader = new FileReader();
         reader.onload = e => {
-          preview.innerHTML = `<img src="${e.target.result}" style="max-width:120px;max-height:80px;border-radius:6px;border:0.5px solid var(--border);">`;
+          const img = document.createElement("img");
+          img.src = e.target.result;
+          img.style.cssText = "width:64px;height:64px;object-fit:cover;border-radius:6px;border:0.5px solid var(--border);";
+          preview.appendChild(img);
         };
-        reader.readAsDataURL(input.files[0]);
-      } else {
-        preview.innerHTML = "";
-      }
+        reader.readAsDataURL(file);
+      });
     }
 
     // ── 工具函式 ─────────────────────────────────────────────────
@@ -1069,6 +1134,178 @@
 
       document.getElementById("detail-loading").style.display = "none";
       document.getElementById("detail-content").style.display = "";
+
+      // 載入課程照片
+      loadDetailPhotos(sessionId);
+    }
+
+    async function loadDetailPhotos(sessionId) {
+      const photosEl = document.getElementById("detail-photos");
+      photosEl.innerHTML = `<div style="font-size:12px;color:var(--text3);" id="detail-photos-loading">載入中…</div>`;
+      try {
+        const photos = await notionQuery(CONFIG.NOTION_DB_PHOTO, {
+          property: "關聯課程", relation: { contains: sessionId }
+        });
+        photosEl.innerHTML = "";
+        if (photos.length === 0) {
+          photosEl.innerHTML = `<span style="font-size:12px;color:var(--text3);">尚無照片</span>`;
+          return;
+        }
+        photos.forEach(p => {
+          const url = p.properties["Google Drive URL"]?.url || "";
+          const child = p.properties["照片分類"]?.select?.name || "";
+          if (!url) return;
+          // 轉換 drive URL 為可顯示格式
+          const match = url.match(/id=([^&]+)/) || url.match(/\/d\/([^/]+)/);
+          const dispUrl = match ? `https://lh3.googleusercontent.com/d/${match[1]}=w200` : url;
+          const item = document.createElement("div");
+          item.style.cssText = "text-align:center;";
+          item.innerHTML = `
+            <img src="${dispUrl}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:0.5px solid var(--border);cursor:pointer;"
+                 onclick="window.open('${url}','_blank')"
+                 onerror="this.style.display='none'">
+            ${child ? `<div style="font-size:10px;color:var(--text2);margin-top:2px;">${child}</div>` : ""}
+          `;
+          photosEl.appendChild(item);
+        });
+      } catch (e) {
+        photosEl.innerHTML = `<span style="font-size:12px;color:var(--red);">照片載入失敗</span>`;
+      }
+    }
+
+    // ── 編輯課程 ─────────────────────────────────────────────────
+
+    let editSelectedChildIds = new Set();
+
+    function showEdit() {
+      if (!currentSession) return;
+      showView("v-edit");
+      hideMsg("edit-err");
+      hideMsg("edit-success");
+
+      const s = currentSession;
+      document.getElementById("edit-page-id").value = s.id;
+      document.getElementById("edit-date").value = s.properties["日期"]?.date?.start || "";
+      document.getElementById("edit-type").value = s.properties["課程類型"]?.select?.name || "一般課程";
+      document.getElementById("edit-slot").value = s.properties["時段"]?.rich_text?.[0]?.text?.content || "";
+      document.getElementById("edit-deduct").value = s.properties["扣除堂數"]?.number ?? 1;
+      document.getElementById("edit-note").value = s.properties["備註"]?.rich_text?.[0]?.text?.content || "";
+
+      const childRels = s.properties["出席孩子"]?.relation || [];
+      editSelectedChildIds = new Set(childRels.map(r => r.id));
+      renderEditChips();
+      renderEditDropdown();
+    }
+
+    function toggleEditDropdown() {
+      document.getElementById("edit-child-dropdown").classList.toggle("show");
+    }
+
+    document.addEventListener("click", (e) => {
+      const wrap2 = document.getElementById("edit-selected-chips");
+      const dd2 = document.getElementById("edit-child-dropdown");
+      if (wrap2 && dd2 && !wrap2.contains(e.target) && !dd2.contains(e.target)) {
+        dd2.classList.remove("show");
+      }
+    });
+
+    function renderEditDropdown() {
+      const dd = document.getElementById("edit-child-dropdown");
+      if (!dd) return;
+      dd.innerHTML = "";
+      allChildren.forEach(c => {
+        const id = c.id;
+        const name = c.properties["暱稱"]?.title?.[0]?.text?.content || "未知";
+        const opt = document.createElement("div");
+        opt.className = "child-opt" + (editSelectedChildIds.has(id) ? " selected" : "");
+        opt.innerHTML = `
+          <span style="width:6px;height:6px;border-radius:50%;background:${editSelectedChildIds.has(id) ? "var(--clay-sage)" : "var(--border2)"};flex-shrink:0;"></span>
+          ${name}
+        `;
+        opt.onclick = (e) => {
+          e.stopPropagation();
+          if (editSelectedChildIds.has(id)) editSelectedChildIds.delete(id);
+          else editSelectedChildIds.add(id);
+          renderEditChips();
+          renderEditDropdown();
+        };
+        dd.appendChild(opt);
+      });
+    }
+
+    function renderEditChips() {
+      const wrap = document.getElementById("edit-selected-chips");
+      const placeholder = document.getElementById("edit-chips-placeholder");
+      if (!wrap) return;
+      Array.from(wrap.children).forEach(el => { if (el.classList.contains("chip")) el.remove(); });
+      if (editSelectedChildIds.size === 0) { placeholder.style.display = ""; return; }
+      placeholder.style.display = "none";
+      editSelectedChildIds.forEach(id => {
+        const c = allChildren.find(x => x.id === id);
+        if (!c) return;
+        const name = c.properties["暱稱"]?.title?.[0]?.text?.content || "?";
+        const chip = document.createElement("span");
+        chip.className = "chip";
+        chip.innerHTML = `${name}<button onclick="removeEditChild('${id}',event)">✕</button>`;
+        wrap.insertBefore(chip, placeholder);
+      });
+    }
+
+    function removeEditChild(id, e) {
+      e.stopPropagation();
+      editSelectedChildIds.delete(id);
+      renderEditChips();
+      renderEditDropdown();
+    }
+
+    async function submitEditSession() {
+      hideMsg("edit-err");
+      hideMsg("edit-success");
+      const pageId = document.getElementById("edit-page-id").value;
+      const date = document.getElementById("edit-date").value;
+      const type = document.getElementById("edit-type").value;
+      const slot = document.getElementById("edit-slot").value.trim();
+      const deduct = parseFloat(document.getElementById("edit-deduct").value) || 1;
+      const note = document.getElementById("edit-note").value.trim();
+
+      if (!date) { showErr("edit-err", "請選擇上課日期"); return; }
+      if (editSelectedChildIds.size === 0) { showErr("edit-err", "請至少選擇一位出席孩子"); return; }
+
+      const btn = document.getElementById("edit-btn");
+      btn.disabled = true; btn.textContent = "儲存中…";
+
+      try {
+        const props = {
+          "日期": { date: { start: date } },
+          "課程類型": { select: { name: type } },
+          "扣除堂數": { number: deduct },
+          "出席孩子": { relation: Array.from(editSelectedChildIds).map(id => ({ id })) },
+          "時段": { rich_text: [{ text: { content: slot } }] },
+          "備註": { rich_text: [{ text: { content: note } }] },
+        };
+        await notionUpdate(pageId, props);
+
+        // 更新快取
+        const idx = allSessions.findIndex(s => s.id === pageId);
+        if (idx >= 0) {
+          allSessions[idx].properties["日期"] = { date: { start: date } };
+          allSessions[idx].properties["課程類型"] = { select: { name: type } };
+          allSessions[idx].properties["時段"] = { rich_text: [{ text: { content: slot } }] };
+          allSessions[idx].properties["扣除堂數"] = { number: deduct };
+          allSessions[idx].properties["備註"] = { rich_text: [{ text: { content: note } }] };
+          allSessions[idx].properties["出席孩子"] = { relation: Array.from(editSelectedChildIds).map(id => ({ id })) };
+          currentSession = allSessions[idx];
+        }
+
+        document.getElementById("edit-success").textContent = "✅ 修改已儲存！";
+        document.getElementById("edit-success").style.display = "";
+        setTimeout(() => { showDetail(pageId); }, 1200);
+
+      } catch (e) {
+        showErr("edit-err", "儲存失敗：" + e.message);
+      } finally {
+        btn.disabled = false; btn.textContent = "儲存修改";
+      }
     }
 
     async function confirmDelete() {
@@ -1176,6 +1413,13 @@
       }
     }
 
+    // ── 週課表 inline 編輯開關 ──────────────────────────────────
+
+    function toggleEdit(id) {
+      const el = document.getElementById("edit-" + id);
+      if (el) el.style.display = el.style.display === "none" ? "" : "none";
+    }
+
     // ── 新增課程：孩子多選 ───────────────────────────────────────
 
     function toggleDropdown() {
@@ -1222,6 +1466,7 @@
 
       if (selectedChildIds.size === 0) {
         placeholder.style.display = "";
+        renderChildPhotoSections();
         return;
       }
       placeholder.style.display = "none";
@@ -1233,6 +1478,50 @@
         chip.className = "chip";
         chip.innerHTML = `${name}<button onclick="removeChild('${id}',event)">✕</button>`;
         wrap.insertBefore(chip, placeholder);
+      });
+      renderChildPhotoSections();
+    }
+
+    /** 依已選孩子動態產生各自的照片上傳區 */
+    function renderChildPhotoSections() {
+      const container = document.getElementById("child-photo-sections");
+      if (!container) return;
+
+      // 保留已選擇的檔案（重新渲染時不清空 input）
+      const existingFiles = {};
+      selectedChildIds.forEach(id => {
+        const inp = document.getElementById("photo-" + id);
+        if (inp && inp.files.length > 0) existingFiles[id] = inp.files;
+      });
+
+      container.innerHTML = "";
+      if (selectedChildIds.size === 0) return;
+
+      const header = document.createElement("div");
+      header.innerHTML = `<div class="divline"></div><div class="ct" style="margin-bottom:8px;">課程照片（每位孩子可上傳多張）</div>`;
+      container.appendChild(header);
+
+      const AV_C = ["c0","c1","c2","c3","c4"];
+      let idx = 0;
+      selectedChildIds.forEach(id => {
+        const c = allChildren.find(x => x.id === id);
+        if (!c) return;
+        const name = c.properties["暱稱"]?.title?.[0]?.text?.content || "?";
+        const avCls = AV_C[idx++ % AV_C.length];
+
+        const section = document.createElement("div");
+        section.style.cssText = "margin-bottom:10px;padding:10px;background:var(--bg2);border-radius:var(--radius-md);";
+        section.innerHTML = `
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <div class="av ${avCls}" style="width:24px;height:24px;font-size:10px;">${name[0]||"?"}</div>
+            <span style="font-size:13px;font-weight:500;">${name}</span>
+            <span style="font-size:11px;color:var(--text3);">的照片（選填）</span>
+          </div>
+          <input type="file" class="fi" id="photo-${id}" accept="image/*" multiple style="padding:4px 6px;"
+                 onchange="previewPhotos(this,'prev-${id}')">
+          <div id="prev-${id}" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
+        `;
+        container.appendChild(section);
       });
     }
 
@@ -1254,7 +1543,6 @@
       const slot = document.getElementById("add-slot").value.trim();
       const deduct = parseFloat(document.getElementById("add-deduct").value) || 1;
       const note = document.getElementById("add-note").value.trim();
-      const photoFile = document.getElementById("add-photo").files[0] || null;
 
       if (!date) { showErr("add-err", "請選擇上課日期"); return; }
       if (selectedChildIds.size === 0) { showErr("add-err", "請至少選擇一位出席孩子"); return; }
@@ -1264,52 +1552,59 @@
       btn.textContent = "儲存中…";
 
       try {
-        // 如果有選圖片，先上傳到 Google Drive
-        let photoUrl = "";
-        if (photoFile) {
-          btn.textContent = "上傳圖片中…";
-          photoUrl = await uploadImageFile(photoFile);
-        }
-
-        btn.textContent = "儲存中…";
-
         // 課程 ID：用日期+隨機碼
-        const sessionId = `S-${date}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+        const sessionTitleId = `S-${date}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
         const props = {
-          "課程 ID": { title: [{ text: { content: sessionId } }] },
+          "課程 ID": { title: [{ text: { content: sessionTitleId } }] },
           "日期": { date: { start: date } },
           "課程類型": { select: { name: type } },
           "扣除堂數": { number: deduct },
           "出席孩子": { relation: Array.from(selectedChildIds).map(id => ({ id })) },
         };
-
         if (slot) props["時段"] = { rich_text: [{ text: { content: slot } }] };
         if (note) props["備註"] = { rich_text: [{ text: { content: note } }] };
-        if (photoUrl) {
-          props["Photo"] = { files: [{ name: "photo", type: "external", external: { url: photoUrl } }] };
+
+        // 1. 建立課程紀錄
+        const sessionResult = await notionCreate(CONFIG.NOTION_DB_SESSION, props);
+        const sessionPageId = sessionResult.id;
+
+        // 2. 上傳各孩子照片並建立 Photo 記錄
+        let photoCount = 0;
+        for (const childId of selectedChildIds) {
+          const inp = document.getElementById("photo-" + childId);
+          if (!inp || inp.files.length === 0) continue;
+          const childName = allChildren.find(c => c.id === childId)?.properties["暱稱"]?.title?.[0]?.text?.content || "";
+          const files = Array.from(inp.files);
+
+          for (let fi = 0; fi < files.length; fi++) {
+            btn.textContent = `上傳照片中… (${++photoCount})`;
+            const url = await uploadImageFile(files[fi]);
+            const photoTitleId = `P-${Date.now()}-${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+            await notionCreate(CONFIG.NOTION_DB_PHOTO, {
+              "照片 ID": { title: [{ text: { content: photoTitleId } }] },
+              "關聯課程": { relation: [{ id: sessionPageId }] },
+              "Google Drive URL": { url: url },
+              "照片分類": { select: { name: childName || "其他" } },
+            });
+          }
         }
 
-        await notionCreate(CONFIG.NOTION_DB_SESSION, props);
-
-        document.getElementById("add-success").textContent = `✅ 課程紀錄已儲存！`;
+        document.getElementById("add-success").textContent =
+          `✅ 課程紀錄已儲存！${photoCount > 0 ? `（共上傳 ${photoCount} 張照片）` : ""}`;
         document.getElementById("add-success").style.display = "";
 
         // 重置表單
-        document.getElementById("add-date").value = "";
+        document.getElementById("add-date").value = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
         document.getElementById("add-slot").value = "";
         document.getElementById("add-deduct").value = "1";
         document.getElementById("add-note").value = "";
-        document.getElementById("add-photo").value = "";
-        document.getElementById("add-photo-preview").innerHTML = "";
         selectedChildIds.clear();
         renderChips();
         renderDropdown();
 
-        // 重新載入列表
         allSessions = [];
         loadSessions();
-
         setTimeout(() => showView("v-main"), 1800);
 
       } catch (e) {
@@ -1355,7 +1650,7 @@
         };
 
         // 呼叫更新 API
-        await notionUpdate(pageId, props);
+        await notionUpdate(id, props);
 
         document.getElementById("sch-success").textContent = "✅ 儲存成功！";
         document.getElementById("sch-success").style.display = "";
