@@ -187,7 +187,7 @@ async function proxyPost(action, payload) {
   const res = await fetch(GAS_URL, {
     method: "POST",
     credentials: "omit",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "text/plain" },
     body: JSON.stringify({ source: "admin", action, ...payload }),
   });
   if (!res.ok) throw new Error("GAS 回應錯誤 " + res.status);
@@ -204,7 +204,7 @@ async function proxyAction(action, payload) {
   const res = await fetch(GAS_URL, {
     method: "POST",
     credentials: "omit",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "text/plain" },
     body: JSON.stringify({ source: "public", action, ...payload }),
   });
   if (!res.ok) throw new Error("GAS 回應錯誤 " + res.status);
