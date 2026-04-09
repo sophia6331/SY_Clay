@@ -240,6 +240,18 @@ async function proxyAction(action, payload) {
   return data;
 }
 
+/**
+ * 批次查詢（一次回傳多筆資料，減少 HTTP 來回次數）
+ */
+async function proxyBatch(action, params = {}) {
+  const urlParams = new URLSearchParams({ action, ...params });
+  const res = await fetch(`${GAS_URL}?${urlParams}`, { credentials: "omit" });
+  if (!res.ok) throw new Error("GAS 回應錯誤 " + res.status);
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || "查詢失敗");
+  return data;
+}
+
 // ── 日期工具 ─────────────────────────────────────────────────
 function today() {
   return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
@@ -300,14 +312,9 @@ async function loadChildren() {
   const listEl=document.getElementById("child-list");
   loadEl.style.display=""; listEl.innerHTML="";
   try {
-    const parents=await proxyQuery("NOTION_DB_PARENT",{property:"LINE UID",title:{equals:lineUID}});
-    if(parents.length===0){ 
-      myParentId=null;
-      myChildren=[];
-    } else {
-      myParentId=parents[0].id;
-      myChildren=await proxyQuery("NOTION_DB_CHILD",{property:"Parent",relation:{contains:myParentId}});
-    }
+    const data=await proxyBatch("getMyChildren",{uid:lineUID});
+    myParentId=data.parentId||null;
+    myChildren=data.children||[];
     loadEl.style.display="none";
     if(myChildren.length===0){ listEl.innerHTML=`<div style="font-size:13px;color:var(--text2);">尚未新增孩子</div>`; return; }
     myChildren.forEach((c,i)=>{

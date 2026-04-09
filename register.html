@@ -213,6 +213,18 @@ async function proxyAction(action, payload) {
   return data;
 }
 
+/**
+ * 批次查詢（一次回傳多筆資料，減少 HTTP 來回次數）
+ */
+async function proxyBatch(action, params = {}) {
+  const urlParams = new URLSearchParams({ action, ...params });
+  const res = await fetch(`${GAS_URL}?${urlParams}`, { credentials: "omit" });
+  if (!res.ok) throw new Error("GAS 回應錯誤 " + res.status);
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || "查詢失敗");
+  return data;
+}
+
 // ── 日期工具 ─────────────────────────────────────────────────
 function today() {
   return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
@@ -223,7 +235,9 @@ function daysLater(n) {
 }
 function formatDate(str) {
   if (!str) return "";
-  const d = new Date(str + "T00:00:00+08:00");
+  const dateStr = str.includes("T") ? str : str + "T00:00:00+08:00";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return str;
   const w = ["日","一","二","三","四","五","六"];
   return `${d.getMonth()+1}/${d.getDate()}（週${w[d.getDay()]}）`;
 }
@@ -288,31 +302,24 @@ async function loadRegList() {
   const listEl=document.getElementById("reg-list");
   const emptyEl=document.getElementById("reg-empty");
   try {
-    const parents=await proxyQuery("NOTION_DB_PARENT",{property:"LINE UID",title:{equals:lineUID}});
-    if(parents.length===0) { 
-      loadEl.style.display="none"; 
+    // 一次取回家長 + 孩子 + 課程 + 主題（GAS 內部並行查詢，只需一次 HTTP 來回）
+    const data=await proxyBatch("getMyRegData",{uid:lineUID});
+    myParentId=data.parentId||null;
+    myChildren=data.children||[];
+
+    if(!myParentId||myChildren.length===0) {
+      loadEl.style.display="none";
       emptyEl.innerHTML='請先綁定小朋友，完成綁定後就能開始報名囉！<br><br><button class="btn-main" style="max-width:200px;margin:0 auto;display:block;" onclick="location.href=\'children.html?uid='+lineUID+'\'">去綁定</button>';
-      emptyEl.style.display=""; 
-      return; 
-    }
-    myParentId=parents[0].id;
-    myChildren=await proxyQuery("NOTION_DB_CHILD",{property:"Parent",relation:{contains:myParentId}});
-    if(myChildren.length===0) { 
-      loadEl.style.display="none"; 
-      emptyEl.innerHTML='請先綁定小朋友，完成綁定後就能開始報名囉！<br><br><button class="btn-main" style="max-width:200px;margin:0 auto;display:block;" onclick="location.href=\'children.html?uid='+lineUID+'\'">去綁定</button>';
-      emptyEl.style.display=""; 
-      return; 
+      emptyEl.style.display="";
+      return;
     }
 
     const childIds=new Set(myChildren.map(c=>c.id));
     const childNameMap={};
     myChildren.forEach(c=>{ childNameMap[c.id]=c.properties["暱稱"]?.title?.[0]?.text?.content||""; });
 
-    // 同時查詢常態課程 + 主題課程（並行，節省一半等待時間）
-    const [futureSess, themes] = await Promise.all([
-      proxyQuery("NOTION_DB_SESSION",{property:"日期",date:{on_or_after:today()}}),
-      proxyQuery("NOTION_DB_THEME",{property:"報名狀態",select:{equals:"開放"}}),
-    ]);
+    const futureSess=data.sessions||[];
+    const themes=data.themes||[];
     const mySess=futureSess.filter(s=>(s.properties["出席孩子"]?.relation||[]).some(r=>childIds.has(r.id)));
     const myThemes=themes.filter(t=>{
       const list=t.properties["報名名單"]?.rich_text?.[0]?.text?.content||"";
