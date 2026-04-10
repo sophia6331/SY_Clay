@@ -97,6 +97,37 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 /* ── Refresh button ──────────────────────────── */
 .refresh-btn{background:transparent;border:0.5px solid var(--clay-sage-mid);border-radius:var(--radius-md);color:var(--clay-sage);font-size:11px;padding:4px 10px;cursor:pointer;font-family:inherit;}
 .refresh-btn:hover{background:var(--clay-sage-light);}
+
+/* ── 2 週行事曆 ─────────────────────────────── */
+.cal-header{display:flex;align-items:center;gap:6px;margin-bottom:10px;}
+.cal-nav-btn{width:28px;height:28px;border:0.5px solid var(--border2);background:var(--bg);border-radius:6px;cursor:pointer;font-size:14px;color:var(--text2);display:flex;align-items:center;justify-content:center;line-height:1;font-family:inherit;}
+.cal-nav-btn:hover{background:var(--bg2);color:var(--text);}
+.cal-range{font-size:12px;color:var(--text);padding:0 6px;font-weight:500;}
+.cal-today-btn{margin-left:auto;font-size:11px;padding:4px 10px;border:0.5px solid var(--clay-sage-mid);background:transparent;color:var(--clay-sage);border-radius:6px;cursor:pointer;font-family:inherit;}
+.cal-today-btn:hover{background:var(--clay-sage-light);}
+
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;}
+.cal-day{background:var(--bg2);border-radius:var(--radius-md);padding:8px 6px 6px;min-height:140px;border:0.5px solid var(--border);display:flex;flex-direction:column;}
+.cal-day.today{background:#EEEDFE;border-color:#8f87e8;}
+.cal-day-head{text-align:center;margin-bottom:6px;}
+.cal-day-title{font-size:11px;font-weight:500;color:var(--text);}
+.cal-day-date{font-size:10px;color:var(--text2);margin-top:1px;}
+.cal-day-count{display:inline-flex;align-items:center;gap:3px;font-size:9px;padding:3px 8px;border-radius:999px;margin-top:4px;background:var(--bg3);color:var(--text3);}
+.cal-day-count.active{background:#2d2c3a;color:#fff;}
+.cal-day.today .cal-day-count.active{background:#5d56c8;}
+.cal-day-body{flex:1;display:flex;flex-direction:column;gap:4px;}
+.cal-card{background:var(--bg);border-radius:4px;padding:5px 6px;border-left:2px solid var(--clay-sage);}
+.cal-card.theme{border-left-color:var(--clay-rose);}
+.cal-card-type{font-size:9px;display:inline-block;padding:1px 5px;border-radius:3px;background:var(--clay-sage-light);color:var(--clay-text-sage);margin-bottom:3px;}
+.cal-card.theme .cal-card-type{background:var(--clay-rose-light);color:var(--clay-text-rose);}
+.cal-card-time{font-size:10px;color:var(--text);display:flex;align-items:center;gap:3px;}
+.cal-card-count{font-size:9px;color:var(--text2);margin-top:3px;background:var(--bg2);border-radius:3px;padding:2px 4px;display:flex;align-items:center;gap:3px;}
+.cal-day-empty{text-align:center;font-size:10px;color:var(--text3);flex:1;display:flex;align-items:center;justify-content:center;border:1px dashed var(--border2);border-radius:4px;margin-top:2px;}
+
+@media(max-width:900px){
+  .cal-grid{grid-template-columns:repeat(7,minmax(74px,1fr));overflow-x:auto;}
+  .cal-day{min-height:130px;}
+}
 </style>
 </head>
 <body>
@@ -137,16 +168,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
       </div>
     </div>
 
-    <!-- 報名狀況 -->
+    <!-- 報名狀況（2 週行事曆）-->
     <div class="card">
       <div class="cardtop">
         <span class="ct">報名狀況</span>
       </div>
-      <div class="loading" id="reg-loading">載入中…</div>
-      <div id="reg-list"></div>
-      <div id="reg-empty" style="display:none;font-size:12px;color:var(--text2);padding:4px 0;">
-        目前沒有即將到來的課程報名
+      <div class="cal-header">
+        <button class="cal-nav-btn" onclick="calPrev()" title="前 2 週">‹</button>
+        <span class="cal-range" id="cal-range">—</span>
+        <button class="cal-nav-btn" onclick="calNext()" title="後 2 週">›</button>
+        <button class="cal-today-btn" onclick="calGoToday()">今天</button>
       </div>
+      <div class="loading" id="reg-loading">載入中…</div>
+      <div class="cal-grid" id="cal-grid"></div>
     </div>
 
     <!-- 主題課程進度 -->
@@ -316,15 +350,15 @@ function avText(name) { return name ? name[0] : "?"; }
 
 async function loadDashboard() {
   // 重置 loading 狀態
-  ["next3-loading","theme-loading"].forEach(id => {
+  ["reg-loading","theme-loading"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = "";
   });
-  ["next3-list","theme-list"].forEach(id => {
+  ["cal-grid","theme-list"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = "";
   });
-  ["next3-empty","theme-empty"].forEach(id => {
+  ["theme-empty"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = "none";
   });
@@ -370,84 +404,151 @@ async function loadStats() {
 
 
 
-// ── 載入報名狀況（未來所有課程的簡易列表） ──────────────────────
+// ── 報名狀況：2 週行事曆狀態 ─────────────────────────────────
+const calState = {
+  startDate: null,   // 顯示區間第一天 (週一) YYYY-MM-DD
+};
+
+/** 計算指定日期所在週的週一（台灣時區） */
+function mondayOf(dateStr) {
+  const d = new Date(dateStr + "T00:00:00+08:00");
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d.toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
+}
+
+/** 加 N 天 */
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + "T00:00:00+08:00");
+  d.setDate(d.getDate() + n);
+  return d.toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
+}
+
+/** 格式化為 M/D */
+function fmtMD(dateStr) {
+  const d = new Date(dateStr + "T00:00:00+08:00");
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+/** 格式化為 YYYY/MM/DD */
+function fmtYMD(dateStr) {
+  const d = new Date(dateStr + "T00:00:00+08:00");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}/${mm}/${dd}`;
+}
+
+function calPrev() { calState.startDate = addDays(calState.startDate, -14); loadRegistrations(); }
+function calNext() { calState.startDate = addDays(calState.startDate, 14);  loadRegistrations(); }
+function calGoToday() { calState.startDate = mondayOf(today()); loadRegistrations(); }
+
+// ── 載入報名狀況（2 週行事曆）──────────────────────────────────
 
 async function loadRegistrations() {
   const loadingEl = document.getElementById("reg-loading");
-  const listEl    = document.getElementById("reg-list");
-  const emptyEl   = document.getElementById("reg-empty");
+  const gridEl    = document.getElementById("cal-grid");
+  const rangeEl   = document.getElementById("cal-range");
 
-  listEl.innerHTML = "";
-  emptyEl.style.display = "none";
+  // 初始化區間
+  if (!calState.startDate) calState.startDate = mondayOf(today());
+
+  const start = calState.startDate;
+  const end   = addDays(start, 13);
+  rangeEl.textContent = `${fmtYMD(start)} - ${fmtYMD(end)}`;
+
+  gridEl.innerHTML = "";
   loadingEl.style.display = "";
 
   try {
-    const t = today();
-    // 查詢從今天起的所有常態課程
+    // 查詢區間內所有常態課程
     const sessions = await notionQuery(CONFIG.NOTION_DB_SESSION, {
-      property: "日期", date: { on_or_after: t }
+      and: [
+        { property: "日期", date: { on_or_after:  start } },
+        { property: "日期", date: { on_or_before: end   } },
+      ]
     });
 
     loadingEl.style.display = "none";
 
-    if (sessions.length === 0) {
-      emptyEl.style.display = "";
-      return;
+    // 將課程依日期分組
+    const byDate = {};
+    sessions.forEach(s => {
+      const d = s.properties["日期"]?.date?.start || "";
+      if (!d) return;
+      (byDate[d] = byDate[d] || []).push(s);
+    });
+    // 每天再依時段排序
+    Object.values(byDate).forEach(arr => {
+      arr.sort((a, b) => {
+        const ta = a.properties["時段"]?.rich_text?.[0]?.text?.content || "";
+        const tb = b.properties["時段"]?.rich_text?.[0]?.text?.content || "";
+        return ta.localeCompare(tb);
+      });
+    });
+
+    const todayStr = today();
+    const weekDays = ["日","一","二","三","四","五","六"];
+
+    // 渲染 14 個日格
+    for (let i = 0; i < 14; i++) {
+      const dateStr = addDays(start, i);
+      const d = new Date(dateStr + "T00:00:00+08:00");
+      const wd = weekDays[d.getDay()];
+      const items = byDate[dateStr] || [];
+      const totalCount = items.reduce((sum, it) => {
+        const arr = it.properties["出席孩子"]?.relation || [];
+        return sum + arr.length;
+      }, 0);
+      const isToday = (dateStr === todayStr);
+
+      const cell = document.createElement("div");
+      cell.className = "cal-day" + (isToday ? " today" : "");
+
+      const head = document.createElement("div");
+      head.className = "cal-day-head";
+      head.innerHTML = `
+        <div class="cal-day-title">週${wd}</div>
+        <div class="cal-day-date">${fmtMD(dateStr)}</div>
+        <div class="cal-day-count ${totalCount > 0 ? "active" : "zero"}">
+          <span>👥</span><span>共${totalCount}人</span>
+        </div>
+      `;
+      cell.appendChild(head);
+
+      const body = document.createElement("div");
+      body.className = "cal-day-body";
+
+      if (items.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "cal-day-empty";
+        empty.textContent = "無排定課程";
+        body.appendChild(empty);
+      } else {
+        items.forEach(s => {
+          const type     = s.properties["課程類型"]?.select?.name || "一般課程";
+          const timeSlot = s.properties["時段"]?.rich_text?.[0]?.text?.content || "";
+          const childArr = s.properties["出席孩子"]?.relation || [];
+          const isTheme  = type.includes("主題");
+
+          const card = document.createElement("div");
+          card.className = "cal-card" + (isTheme ? " theme" : "");
+          card.innerHTML = `
+            <div class="cal-card-type">${type}</div>
+            <div class="cal-card-time">🕐 ${timeSlot}</div>
+            <div class="cal-card-count">👥 報名 ${childArr.length} 人</div>
+          `;
+          body.appendChild(card);
+        });
+      }
+
+      cell.appendChild(body);
+      gridEl.appendChild(cell);
     }
-
-    // 依日期排序
-    sessions.sort((a, b) => {
-      const da = a.properties["日期"]?.date?.start || "";
-      const db = b.properties["日期"]?.date?.start || "";
-      return da.localeCompare(db);
-    });
-
-    // 建立 childId → name map
-    const childMap = {};
-    const allChildren = await notionQuery(CONFIG.NOTION_DB_CHILD);
-    allChildren.forEach(c => {
-      childMap[c.id] = c.properties["暱稱"]?.title?.[0]?.text?.content || "未知";
-    });
-
-    // 渲染每一筆課程（簡潔列表，全部統一 tag 色）
-    sessions.forEach((s, idx) => {
-      const dateStr  = s.properties["日期"]?.date?.start || "";
-      const timeSlot = s.properties["時段"]?.rich_text?.[0]?.text?.content || "";
-      const type     = s.properties["課程類型"]?.select?.name || "一般課程";
-      const childRels = s.properties["出席孩子"]?.relation || [];
-      const childNames = childRels.map(r => childMap[r.id] || "?");
-
-      const row = document.createElement("div");
-      row.className = "li";
-      row.style.cssText = "display:flex;align-items:flex-start;gap:8px;padding:9px 0;border-bottom:0.5px solid var(--border);";
-
-      // 日期欄
-      const dateDiv = document.createElement("div");
-      dateDiv.style.cssText = "min-width:62px;flex-shrink:0;";
-      dateDiv.innerHTML = `
-        <div style="font-size:12px;font-weight:500;">${formatDate(dateStr).replace("（", "<br><span style='font-size:10px;color:var(--text2);'>").replace("）", "</span>")}</div>
-        ${timeSlot ? `<div style="font-size:10px;color:var(--text2);">${timeSlot}</div>` : ""}
-      `;
-
-      // 內容欄（孩子標籤統一使用同一顏色）
-      const infoDiv = document.createElement("div");
-      infoDiv.style.flex = "1";
-      const tagsHtml = childNames.map(n => `<span class="tag s">${n}</span>`).join("");
-      infoDiv.innerHTML = `
-        <div style="font-size:13px;font-weight:500;">${type}</div>
-        <div style="margin-top:3px;">${tagsHtml}</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:2px;">${childNames.length} 人已報名</div>
-      `;
-
-      row.appendChild(dateDiv);
-      row.appendChild(infoDiv);
-
-      if (idx === sessions.length - 1) row.style.borderBottom = "none";
-      listEl.appendChild(row);
-    });
 
   } catch (e) {
     console.error("loadRegistrations 錯誤:", e);
+    loadingEl.style.display = "";
     loadingEl.textContent = "⚠ 載入失敗：" + e.message;
   }
 }
