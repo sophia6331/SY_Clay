@@ -116,12 +116,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 .cal-day-count.active{background:#2d2c3a;color:#fff;}
 .cal-day.today .cal-day-count.active{background:#5d56c8;}
 .cal-day-body{flex:1;display:flex;flex-direction:column;gap:4px;}
-.cal-card{background:var(--bg);border-radius:4px;padding:5px 6px;border-left:2px solid var(--clay-sage);}
+.cal-card{background:var(--bg);border-radius:4px;padding:5px 6px;border-left:2px solid var(--clay-sage);cursor:pointer;transition:background .15s;}
+.cal-card:hover{background:var(--bg2);}
 .cal-card.theme{border-left-color:var(--clay-rose);}
-.cal-card-type{font-size:9px;display:inline-block;padding:1px 5px;border-radius:3px;background:var(--clay-sage-light);color:var(--clay-text-sage);margin-bottom:3px;}
+.cal-card-top{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+.cal-card-type{font-size:9px;display:inline-block;padding:1px 5px;border-radius:3px;background:var(--clay-sage-light);color:var(--clay-text-sage);white-space:nowrap;}
 .cal-card.theme .cal-card-type{background:var(--clay-rose-light);color:var(--clay-text-rose);}
-.cal-card-time{font-size:10px;color:var(--text);display:flex;align-items:center;gap:3px;}
-.cal-card-count{font-size:9px;color:var(--text2);margin-top:3px;background:var(--bg2);border-radius:3px;padding:2px 4px;display:flex;align-items:center;gap:3px;}
+.cal-card-time{font-size:10px;color:var(--text);display:inline-flex;align-items:center;gap:2px;white-space:nowrap;}
+.cal-card-count{font-size:9px;color:var(--text2);margin-top:3px;display:flex;align-items:center;gap:3px;}
+.cal-card-detail{overflow:hidden;max-height:0;transition:max-height .25s ease;margin-top:0;}
+.cal-card-detail.open{max-height:200px;margin-top:4px;}
+.cal-card-detail-inner{display:flex;flex-wrap:wrap;gap:2px;padding-top:3px;border-top:0.5px solid var(--border);}
+.cal-card-child{font-size:9px;padding:2px 5px;border-radius:3px;background:var(--clay-sand-light);color:var(--clay-text-sand);}
 .cal-day-empty{text-align:center;font-size:10px;color:var(--text3);flex:1;display:flex;align-items:center;justify-content:center;border:1px dashed var(--border2);border-radius:4px;margin-top:2px;}
 
 @media(max-width:900px){
@@ -461,30 +467,47 @@ async function loadRegistrations() {
   loadingEl.style.display = "";
 
   try {
-    // 查詢區間內所有常態課程
-    const sessions = await notionQuery(CONFIG.NOTION_DB_SESSION, {
-      and: [
-        { property: "日期", date: { on_or_after:  start } },
-        { property: "日期", date: { on_or_before: end   } },
-      ]
-    });
+    // 同時查詢區間課程 + 所有孩子名稱
+    const [sessions, allChildren] = await Promise.all([
+      notionQuery(CONFIG.NOTION_DB_SESSION, {
+        and: [
+          { property: "日期", date: { on_or_after:  start } },
+          { property: "日期", date: { on_or_before: end   } },
+        ]
+      }),
+      notionQuery(CONFIG.NOTION_DB_CHILD),
+    ]);
 
     loadingEl.style.display = "none";
 
-    // 將課程依日期分組
+    // childId → name 對應表
+    const childMap = {};
+    allChildren.forEach(c => {
+      childMap[c.id] = c.properties["暱稱"]?.title?.[0]?.text?.content || "未知";
+    });
+
+    // 將課程依 日期 + 時段 分組合併（同一天同一時段可能有多筆 session，視為同一堂課）
+    // byDate[date][timeSlot] = { type, timeSlot, childIds: [...] }
     const byDate = {};
     sessions.forEach(s => {
       const d = s.properties["日期"]?.date?.start || "";
       if (!d) return;
-      (byDate[d] = byDate[d] || []).push(s);
-    });
-    // 每天再依時段排序
-    Object.values(byDate).forEach(arr => {
-      arr.sort((a, b) => {
-        const ta = a.properties["時段"]?.rich_text?.[0]?.text?.content || "";
-        const tb = b.properties["時段"]?.rich_text?.[0]?.text?.content || "";
-        return ta.localeCompare(tb);
+      const timeSlot = s.properties["時段"]?.rich_text?.[0]?.text?.content || "";
+      const type     = s.properties["課程類型"]?.select?.name || "一般課程";
+      const childArr = s.properties["出席孩子"]?.relation || [];
+
+      if (!byDate[d]) byDate[d] = {};
+      const key = timeSlot || "__no_time__";
+      if (!byDate[d][key]) {
+        byDate[d][key] = { type, timeSlot, childIds: [] };
+      }
+      childArr.forEach(r => {
+        if (!byDate[d][key].childIds.includes(r.id)) {
+          byDate[d][key].childIds.push(r.id);
+        }
       });
+      // 若有多種課程類型，取第一個非空的
+      if (!byDate[d][key].type && type) byDate[d][key].type = type;
     });
 
     const todayStr = today();
@@ -495,11 +518,9 @@ async function loadRegistrations() {
       const dateStr = addDays(start, i);
       const d = new Date(dateStr + "T00:00:00+08:00");
       const wd = weekDays[d.getDay()];
-      const items = byDate[dateStr] || [];
-      const totalCount = items.reduce((sum, it) => {
-        const arr = it.properties["出席孩子"]?.relation || [];
-        return sum + arr.length;
-      }, 0);
+      const daySlots = byDate[dateStr] || {};
+      const slotKeys = Object.keys(daySlots).sort(); // 依時段排序
+      const totalCount = slotKeys.reduce((sum, k) => sum + daySlots[k].childIds.length, 0);
       const isToday = (dateStr === todayStr);
 
       const cell = document.createElement("div");
@@ -519,25 +540,36 @@ async function loadRegistrations() {
       const body = document.createElement("div");
       body.className = "cal-day-body";
 
-      if (items.length === 0) {
+      if (slotKeys.length === 0) {
         const empty = document.createElement("div");
         empty.className = "cal-day-empty";
         empty.textContent = "無排定課程";
         body.appendChild(empty);
       } else {
-        items.forEach(s => {
-          const type     = s.properties["課程類型"]?.select?.name || "一般課程";
-          const timeSlot = s.properties["時段"]?.rich_text?.[0]?.text?.content || "";
-          const childArr = s.properties["出席孩子"]?.relation || [];
-          const isTheme  = type.includes("主題");
+        slotKeys.forEach(key => {
+          const slot = daySlots[key];
+          const isTheme = slot.type.includes("主題");
+          const childNames = slot.childIds.map(id => childMap[id] || "?");
 
           const card = document.createElement("div");
           card.className = "cal-card" + (isTheme ? " theme" : "");
           card.innerHTML = `
-            <div class="cal-card-type">${type}</div>
-            <div class="cal-card-time">🕐 ${timeSlot}</div>
-            <div class="cal-card-count">👥 報名 ${childArr.length} 人</div>
+            <div class="cal-card-top">
+              <span class="cal-card-type">${slot.type}</span>
+              ${slot.timeSlot ? `<span class="cal-card-time">🕐 ${slot.timeSlot}</span>` : ""}
+            </div>
+            <div class="cal-card-count">報名人數 👥 <strong>${slot.childIds.length}</strong> 人</div>
+            <div class="cal-card-detail">
+              <div class="cal-card-detail-inner">
+                ${childNames.map(n => `<span class="cal-card-child">${n}</span>`).join("")}
+              </div>
+            </div>
           `;
+          // 點擊展開/收合報名者
+          card.addEventListener("click", () => {
+            const det = card.querySelector(".cal-card-detail");
+            det.classList.toggle("open");
+          });
           body.appendChild(card);
         });
       }
