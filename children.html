@@ -308,6 +308,24 @@ document.addEventListener("DOMContentLoaded", async ()=>{
   await loadChildren();
 });
 
+// 載入單一孩子的剩餘堂數並更新 DOM
+async function loadChildLessons(childId) {
+  const el = document.getElementById(`lesson-${childId}`);
+  if (!el) return;
+  try {
+    const [purchases, sessions] = await Promise.all([
+      proxyQuery("NOTION_DB_PURCHASE", { property: "Child",   relation: { contains: childId } }),
+      proxyQuery("NOTION_DB_SESSION",  { property: "出席孩子", relation: { contains: childId } }),
+    ]);
+    const purchased = purchases.reduce((s, p) => s + (p.properties["購買堂數"]?.number || 0), 0);
+    const used      = sessions.reduce((s, se) => s + (se.properties["扣除堂數"]?.number ?? 1), 0);
+    const remaining = purchased - used;
+    el.innerHTML = `剩餘堂數：<strong style="color:var(--text);">${remaining}</strong> 堂（已購 ${purchased}，已用 ${used}）`;
+  } catch (e) {
+    el.innerHTML = `剩餘堂數：<span style="color:var(--text3);">查詢失敗</span>`;
+  }
+}
+
 async function loadChildren() {
   const loadEl=document.getElementById("child-loading");
   const listEl=document.getElementById("child-list");
@@ -325,11 +343,15 @@ async function loadChildren() {
       card.innerHTML=`<div style="display:flex;align-items:center;gap:10px;">
         <div class="av ${AC[i%3]}">${name[0]||"?"}</div>
         <div style="flex:1;"><div style="font-size:14px;font-weight:500;">${name}</div>
-          <div style="font-size:12px;color:var(--text2);">${bday||"未填生日"}${bday?" · "+calcAge(bday):""}</div></div>
+          <div style="font-size:12px;color:var(--text2);">${bday||"未填生日"}${bday?" · "+calcAge(bday):""}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:3px;" id="lesson-${c.id}">剩餘堂數：<span style="color:var(--text3);">查詢中…</span></div>
+        </div>
         <button class="btn-sm" onclick="showEditForm('${c.id}','${name}','${bday}')">編輯</button>
       </div>`;
       listEl.appendChild(card);
     });
+    // 非同步載入每個孩子的剩餘堂數（不阻塞列表顯示）
+    myChildren.forEach(c => loadChildLessons(c.id));
   } catch(e) { loadEl.textContent="⚠ 載入失敗："+e.message; }
 }
 

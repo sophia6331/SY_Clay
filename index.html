@@ -907,6 +907,11 @@
             <div id="weeklyMode">
               <label class="fl">星期</label>
               <select class="fi" id="selDay" onchange="onDayChange()"></select>
+              <div style="margin-top:10px;">
+                <label class="fl">報名週數</label>
+                <input type="number" class="fi" id="inpWeeks" min="1" value="1" onchange="onWeeksChange()" oninput="onWeeksChange()" style="width:100%;padding:10px 12px;border:0.5px solid var(--border);border-radius:var(--radius-md);font-size:14px;font-family:inherit;">
+                <div id="weeksHint" style="font-size:11px;color:var(--text2);margin-top:6px;line-height:1.5;">—</div>
+              </div>
             </div>
             <div id="dateMode" style="display:none;">
               <label class="fl">選擇日期</label>
@@ -1711,10 +1716,12 @@
           const n = myChildren[0].properties["暱稱"]?.title?.[0]?.text?.content || "";
           area.innerHTML = `<div class="child-static" id="reg-child-single">${n}</div>`;
         } else {
-          let h = `<select class="fi" id="reg-child-sel">`;
+          let h = `<select class="fi" id="reg-child-sel" onchange="onChildChange()">`;
           myChildren.forEach(c => { const n = c.properties["暱稱"]?.title?.[0]?.text?.content || ""; h += `<option value="${c.id}">${n}</option>`; });
           h += "</select>"; area.innerHTML = h;
         }
+        // 載入完孩子後，觸發一次剩餘堂數提示
+        if (typeof refreshWeeksHint === "function") refreshWeeksHint();
       } catch (e) { area.innerHTML = `<div style="font-size:12px;color:#a32d2d;">載入失敗</div>`; }
     }
     function getMyChild(selId, staticId) {
@@ -1729,17 +1736,100 @@
       const c = myChildren[sel.selectedIndex];
       return c ? { id: c.id, name: sel.options[sel.selectedIndex].text } : null;
     }
+    // ── 計算孩子剩餘堂數 ────────────────────────────────────────
+    async function getChildRemaining(childId) {
+      const [purchases, sessions] = await Promise.all([
+        proxyQuery("NOTION_DB_PURCHASE", { property: "Child",   relation: { contains: childId } }),
+        proxyQuery("NOTION_DB_SESSION",  { property: "出席孩子", relation: { contains: childId } }),
+      ]);
+      const purchased = purchases.reduce((s, p) => s + (p.properties["購買堂數"]?.number || 0), 0);
+      const used      = sessions.reduce((s, se) => s + (se.properties["扣除堂數"]?.number ?? 1), 0);
+      return { purchased, used, remaining: purchased - used };
+    }
+
+    // ── 計算從今天起 N 個指定星期幾的日期 ──────────────────────
+    function nextNDatesForWeekday(dn, n) {
+      // dn: 1=週一...7=週日；JS getDay(): 0=週日...6=週六
+      const jsTarget = (dn === 7) ? 0 : dn;
+      const dates = [];
+      const now = new Date(today() + "T00:00:00+08:00");
+      let diff = (jsTarget - now.getDay() + 7) % 7; // 0=今天即目標星期
+      const d = new Date(now);
+      d.setDate(d.getDate() + diff);
+      for (let i = 0; i < n; i++) {
+        dates.push(d.toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" }));
+        d.setDate(d.getDate() + 7);
+      }
+      return dates;
+    }
+
+    // ── 更新「報名週數」下方的堂數提示 ──────────────────────────
+    let _remainCache = null;           // { childId, remaining }
+    async function refreshWeeksHint() {
+      const hint = document.getElementById("weeksHint"); if (!hint) return;
+      const child = getMyChild("reg-child-sel", "reg-child-single");
+      if (!child) { hint.textContent = "—"; hint.style.color = "var(--text2)"; return; }
+      const weeks = parseInt(document.getElementById("inpWeeks")?.value || "1", 10) || 1;
+      hint.textContent = "查詢剩餘堂數中…"; hint.style.color = "var(--text2)";
+      try {
+        if (!_remainCache || _remainCache.childId !== child.id) {
+          const r = await getChildRemaining(child.id);
+          _remainCache = { childId: child.id, remaining: r.remaining };
+        }
+        const rem = _remainCache.remaining;
+        if (weeks > rem) {
+          hint.textContent = `喔喔…${child.name} 僅剩 ${rem} 堂課，堂數不足喔！`;
+          hint.style.color = "#a32d2d";
+        } else {
+          hint.textContent = `${child.name} 目前剩餘 ${rem} 堂，本次將扣 ${weeks} 堂，報名後剩 ${rem - weeks} 堂`;
+          hint.style.color = "var(--text2)";
+        }
+      } catch (e) {
+        hint.textContent = "剩餘堂數查詢失敗";
+        hint.style.color = "#a32d2d";
+      }
+    }
+    function onWeeksChange() { refreshWeeksHint(); }
+    // 當使用者切換孩子 / 星期 / 時段時，也更新提示
+    function onChildChange() { _remainCache = null; refreshWeeksHint(); }
+
     async function submitReg() {
       const child = getMyChild("reg-child-sel", "reg-child-single");
       if (!child) { showErr("reg-err", "請先選擇小朋友再報名"); return; }
       const dn = getCurrentDN(); const W = ["", "週一", "週二", "週三", "週四", "週五", "週六", "週日"];
       const slot = document.getElementById("selSlot").value;
       const weekly = document.getElementById("cbWeekly").checked;
+      const weeks = weekly ? Math.max(1, parseInt(document.getElementById("inpWeeks")?.value || "1", 10) || 1) : 1;
       const dateStr = !weekly ? document.getElementById("selDate")?.value : null;
       const btn = document.getElementById("regBtn"); btn.disabled = true; btn.textContent = "送出中…";
       document.getElementById("reg-err").style.display = "none";
       try {
-        await proxyAction("registerSession", { childId: child.id, childName: child.name, weekly, dayNum: dn, dayLabel: W[dn], slot, dateStr });
+        // 先查剩餘堂數
+        const { remaining } = await getChildRemaining(child.id);
+        if (weeks > remaining) {
+          showErr("reg-err", `喔喔…${child.name} 僅剩 ${remaining} 堂課，堂數不足喔！`);
+          return;
+        }
+
+        if (weekly && weeks > 1) {
+          // 多週報名：逐週呼叫，送出具體日期
+          const dates = nextNDatesForWeekday(dn, weeks);
+          for (let i = 0; i < dates.length; i++) {
+            btn.textContent = `送出中… ${i + 1}/${dates.length}`;
+            await proxyAction("registerSession", {
+              childId: child.id, childName: child.name,
+              weekly: false, dayNum: dn, dayLabel: W[dn], slot,
+              dateStr: dates[i],
+            });
+          }
+        } else {
+          // 單次報名（週次=1 或 指定日期）
+          await proxyAction("registerSession", {
+            childId: child.id, childName: child.name,
+            weekly, dayNum: dn, dayLabel: W[dn], slot, dateStr,
+          });
+        }
+        _remainCache = null; // 報名後清掉快取
         document.getElementById("reg-name-out").textContent = child.name;
         btn.style.display = "none"; document.getElementById("reg-ok").style.display = "";
       } catch (e) { showErr("reg-err", "報名失敗：" + e.message); }
@@ -1769,4 +1859,5 @@
     });
   </script>
 </body>
+
 </html>
