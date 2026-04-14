@@ -467,12 +467,18 @@ async function loadRegistrations() {
   loadingEl.style.display = "";
 
   try {
-    // 同時查詢區間課程 + 所有孩子名稱
-    const [sessions, allChildren] = await Promise.all([
+    // 同時查詢區間內一般課程 + 主題課程 + 所有孩子
+    const [sessions, themes, allChildren] = await Promise.all([
       notionQuery(CONFIG.NOTION_DB_SESSION, {
         and: [
           { property: "日期", date: { on_or_after:  start } },
           { property: "日期", date: { on_or_before: end   } },
+        ]
+      }),
+      notionQuery(CONFIG.NOTION_DB_THEME, {
+        and: [
+          { property: "日期時間", date: { on_or_after:  start } },
+          { property: "日期時間", date: { on_or_before: end   } },
         ]
       }),
       notionQuery(CONFIG.NOTION_DB_CHILD),
@@ -487,8 +493,10 @@ async function loadRegistrations() {
     });
 
     // 將課程依 日期 + 時段 分組合併（同一天同一時段可能有多筆 session，視為同一堂課）
-    // byDate[date][timeSlot] = { type, timeSlot, childIds: [...] }
+    // byDate[date][slotKey] = { type, timeSlot, title, childIds[], childNames[], isTheme }
     const byDate = {};
+
+    // 一般課程（使用 relation 查名單）
     sessions.forEach(s => {
       const d = s.properties["日期"]?.date?.start || "";
       if (!d) return;
@@ -497,17 +505,40 @@ async function loadRegistrations() {
       const childArr = s.properties["出席孩子"]?.relation || [];
 
       if (!byDate[d]) byDate[d] = {};
-      const key = timeSlot || "__no_time__";
+      const key = "s:" + (timeSlot || "__no_time__");
       if (!byDate[d][key]) {
-        byDate[d][key] = { type, timeSlot, childIds: [] };
+        byDate[d][key] = { type, timeSlot, title: "", childIds: [], childNames: [], isTheme: false };
       }
       childArr.forEach(r => {
         if (!byDate[d][key].childIds.includes(r.id)) {
           byDate[d][key].childIds.push(r.id);
         }
       });
-      // 若有多種課程類型，取第一個非空的
       if (!byDate[d][key].type && type) byDate[d][key].type = type;
+    });
+
+    // 主題課程（使用 rich_text 逗號分隔名單）
+    themes.forEach(t => {
+      const raw = t.properties["日期時間"]?.date?.start || "";
+      if (!raw) return;
+      const d = raw.slice(0, 10);                       // YYYY-MM-DD
+      const timeSlot = raw.length > 10
+        ? new Date(raw).toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Taipei" })
+        : "";
+      const title    = t.properties["課程名稱"]?.title?.[0]?.text?.content || "主題課程";
+      const listRaw  = t.properties["報名名單"]?.rich_text?.[0]?.text?.content || "";
+      const names    = listRaw ? listRaw.split(",").map(s => s.trim()).filter(Boolean) : [];
+
+      if (!byDate[d]) byDate[d] = {};
+      const key = "t:" + t.id;
+      byDate[d][key] = {
+        type: "主題課程",
+        timeSlot,
+        title,
+        childIds: [],
+        childNames: names,
+        isTheme: true,
+      };
     });
 
     const todayStr = today();
@@ -548,20 +579,30 @@ async function loadRegistrations() {
       } else {
         slotKeys.forEach(key => {
           const slot = daySlots[key];
-          const isTheme = slot.type.includes("主題");
-          const childNames = slot.childIds.map(id => childMap[id] || "?");
+          const isTheme = !!slot.isTheme;
+          // 一般課程用 childIds 對應名稱；主題課程已直接存名稱
+          const childNames = isTheme
+            ? slot.childNames
+            : slot.childIds.map(id => childMap[id] || "?");
+          const peopleCount = childNames.length;
 
           const card = document.createElement("div");
           card.className = "cal-card" + (isTheme ? " theme" : "");
+          const titleHtml = isTheme && slot.title
+            ? `<div style="font-size:10px;font-weight:500;color:var(--clay-text-rose);margin-top:3px;">${slot.title}</div>`
+            : "";
           card.innerHTML = `
             <div class="cal-card-top">
               <span class="cal-card-type">${slot.type}</span>
               ${slot.timeSlot ? `<span class="cal-card-time">🕐 ${slot.timeSlot}</span>` : ""}
             </div>
-            <div class="cal-card-count">報名人數 👥 <strong>${slot.childIds.length}</strong> 人</div>
+            ${titleHtml}
+            <div class="cal-card-count">報名人數 👥 <strong>${peopleCount}</strong> 人</div>
             <div class="cal-card-detail">
               <div class="cal-card-detail-inner">
-                ${childNames.map(n => `<span class="cal-card-child">${n}</span>`).join("")}
+                ${childNames.length > 0
+                  ? childNames.map(n => `<span class="cal-card-child">${n}</span>`).join("")
+                  : `<span style="font-size:9px;color:var(--text3);">尚無報名</span>`}
               </div>
             </div>
           `;
