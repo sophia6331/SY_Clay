@@ -91,6 +91,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 
 /* Photo preview */
 .photo-preview{max-width:160px;max-height:100px;object-fit:cover;border-radius:var(--radius-md);margin-top:4px;}
+
+/* ── Sidebar logo ─────────────────────────────── */
+.sb-logo{padding:12px 14px 0;display:flex;align-items:center;justify-content:center;}
+.sb-logo img{width:108px;display:block;}
+@media(max-width:600px){.sb-logo{padding:8px 0;}.sb-logo img{width:32px;clip-path:inset(0 55% 0 0);}}
 </style>
 </head>
 <body>
@@ -98,6 +103,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 
   <!-- Sidebar -->
   <div class="sb">
+    <div class="sb-logo">
+      <img src="../images/learnlink_logo.png" alt="LearnLink">
+    </div>
+    <div class="sdiv" style="margin:0 12px 4px;"></div>
+
     <div class="si" onclick="location.href='dashboard.html'"><span class="si-icon">🏠</span><span class="si-label">儀表板</span></div>
     <div class="si" onclick="location.href='children.html'"><span class="si-icon">👦</span><span class="si-label">孩子管理</span></div>
     <div class="si" onclick="location.href='parents.html'"><span class="si-icon">👨‍👩‍👧</span><span class="si-label">家長管理</span></div>
@@ -123,7 +133,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
       <div class="card">
         <div class="cardtop">
           <span class="ct">目前輪播 Slide</span>
-          <button class="refresh-btn" onclick="loadSlides()">↻ 重新整理</button>
+          <button class="refresh-btn" onclick="clearNotionCache();loadSlides()">↻ 重新整理</button>
         </div>
         <div class="loading" id="list-loading">載入中…</div>
         <div id="slide-list"></div>
@@ -264,7 +274,36 @@ const CONFIG = {
 
 // ── GAS Proxy API ─────────────────────────────────────────
 
+// ── Notion 查詢快取（sessionStorage, TTL 60 秒） ─────────────
+const NOTION_CACHE_TTL_MS = 60 * 1000;
+function _cacheKey(dbId, filter, sorts) {
+  return "nq:" + dbId + ":" + JSON.stringify(filter || null) + ":" + JSON.stringify(sorts || null);
+}
+function _cacheGet(key) {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const { t, v } = JSON.parse(raw);
+    if (Date.now() - t > NOTION_CACHE_TTL_MS) { sessionStorage.removeItem(key); return null; }
+    return v;
+  } catch (e) { return null; }
+}
+function _cacheSet(key, value) {
+  try { sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), v: value })); }
+  catch (e) {}
+}
+function clearNotionCache() {
+  try {
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const k = sessionStorage.key(i);
+      if (k && k.startsWith("nq:")) sessionStorage.removeItem(k);
+    }
+  } catch (e) {}
+}
 async function notionQuery(dbId, filter = null, sorts = null) {
+  const key = _cacheKey(dbId, filter, sorts);
+  const cached = _cacheGet(key);
+  if (cached) return cached;
   const url = new URL(CONFIG.GAS_URL);
   url.searchParams.set("action", "query");
   url.searchParams.set("db", dbId);
@@ -274,7 +313,9 @@ async function notionQuery(dbId, filter = null, sorts = null) {
   if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
   const data = await res.json();
   if (!data.ok) throw new Error(data.error || "查詢失敗");
-  return data.results || [];
+  const results = data.results || [];
+  _cacheSet(key, results);
+  return results;
 }
 
 async function notionCreate(dbId, properties) {
@@ -286,6 +327,7 @@ async function notionCreate(dbId, properties) {
   if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
   const data = await res.json();
   if (!data.ok) throw new Error(data.error || "未知錯誤");
+      clearNotionCache();
   return data.result;
 }
 
@@ -298,6 +340,7 @@ async function notionUpdate(pageId, properties) {
   if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
   const data = await res.json();
   if (!data.ok) throw new Error(data.error || "未知錯誤");
+      clearNotionCache();
   return data.result;
 }
 
@@ -310,6 +353,7 @@ async function notionDelete(pageId) {
   if (!res.ok) throw new Error("GAS 回應錯誤: " + res.status);
   const data = await res.json();
   if (!data.ok) throw new Error(data.error || "未知錯誤");
+      clearNotionCache();
   return data.result;
 }
 

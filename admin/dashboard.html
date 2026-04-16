@@ -134,6 +134,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
   .cal-grid{grid-template-columns:repeat(7,minmax(74px,1fr));overflow-x:auto;}
   .cal-day{min-height:130px;}
 }
+
+/* ── Sidebar logo ─────────────────────────────── */
+.sb-logo{padding:12px 14px 0;display:flex;align-items:center;justify-content:center;}
+.sb-logo img{width:108px;display:block;}
+@media(max-width:600px){.sb-logo{padding:8px 0;}.sb-logo img{width:32px;clip-path:inset(0 55% 0 0);}}
 </style>
 </head>
 <body>
@@ -141,6 +146,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
 
   <!-- ── Sidebar（之後各頁面連結用）──────────── -->
   <div class="sb">
+    <div class="sb-logo">
+      <img src="../images/learnlink_logo.png" alt="LearnLink">
+    </div>
+    <div class="sdiv" style="margin:0 12px 4px;"></div>
+
     <div class="si on"><span class="si-icon">🏠</span><span class="si-label">儀表板</span></div>
     <div class="si" onclick="location.href='children.html'"><span class="si-icon">👦</span><span class="si-label">孩子管理</span></div>
     <div class="si" onclick="location.href='parents.html'"><span class="si-icon">👨‍👩‍👧</span><span class="si-label">家長管理</span></div>
