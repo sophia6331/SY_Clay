@@ -1170,8 +1170,13 @@
       if (!dStr) return "";
       const d = new Date(dStr);
       if (isNaN(d)) return dStr;
-      const W = ["日", "一", "二", "三", "四", "五", "六"];
-      return `${d.getMonth() + 1}/${d.getDate()} (週${W[d.getDay()]}) ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      // 使用 Asia/Taipei 時區，避免瀏覽器/伺服器時區差異
+      const pts = new Intl.DateTimeFormat("zh-TW", {
+        timeZone: "Asia/Taipei", month: "numeric", day: "numeric",
+        weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false,
+      }).formatToParts(d);
+      const p = {}; pts.forEach(x => p[x.type] = x.value);
+      return `${p.month}/${p.day} (${p.weekday}) ${p.hour}:${p.minute}`;
     }
 
     // ── 輪播 (動態載入) ──────────────────────────────────────────────────────

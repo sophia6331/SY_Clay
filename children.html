@@ -197,10 +197,10 @@ const GAS_URL = "https://script.google.com/macros/s/AKfycbw6PBIUdHTzKBBdbQbRcU-z
  * GAS 的 doGet 接收 ?action=query&db=...&filter=...
  */
 async function proxyQuery(dbId, filter = null, sorts = null) {
-  const params = new URLSearchParams({ action: "query", db: dbId });
+  const params = new URLSearchParams({ action: "query", db: dbId, _t: Date.now() }); // cache-bust
   if (filter) params.set("filter", JSON.stringify(filter));
   if (sorts)  params.set("sorts",  JSON.stringify(sorts));
-  const res = await fetch(`${GAS_URL}?${params}`, { credentials: 'omit' });
+  const res = await fetch(`${GAS_URL}?${params}`, { credentials: 'omit', cache: "no-store" });
   if (!res.ok) throw new Error("GAS 回應錯誤 " + res.status);
   const data = await res.json();
   if (!data.ok) throw new Error(data.error || "查詢失敗");
@@ -245,8 +245,8 @@ async function proxyAction(action, payload) {
  * 批次查詢（一次回傳多筆資料，減少 HTTP 來回次數）
  */
 async function proxyBatch(action, params = {}) {
-  const urlParams = new URLSearchParams({ action, ...params });
-  const res = await fetch(`${GAS_URL}?${urlParams}`, { credentials: "omit" });
+  const urlParams = new URLSearchParams({ action, ...params, _t: Date.now() }); // cache-bust
+  const res = await fetch(`${GAS_URL}?${urlParams}`, { credentials: "omit", cache: "no-store" });
   if (!res.ok) throw new Error("GAS 回應錯誤 " + res.status);
   const data = await res.json();
   if (!data.ok) throw new Error(data.error || "查詢失敗");
