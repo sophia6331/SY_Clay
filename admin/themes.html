@@ -519,9 +519,18 @@ async function notionDelete(pageId) {
 
 function formatDate(str) {
   if (!str) return "—";
+  // 統一以 Asia/Taipei 時區解析與顯示
   const d = new Date(str.includes("T") ? str : str + "T00:00:00+08:00");
-  const days = ["日","一","二","三","四","五","六"];
-  return `${d.getMonth()+1}/${d.getDate()}（週${days[d.getDay()]}）${str.includes("T") ? ` ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}` : ""}`;
+  // 取得台北時區的各欄位
+  const parts = new Intl.DateTimeFormat("zh-TW", {
+    timeZone: "Asia/Taipei", year: "numeric", month: "numeric", day: "numeric",
+    weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(d);
+  const p = {};
+  parts.forEach(x => p[x.type] = x.value);
+  let result = `${p.month}/${p.day}（${p.weekday}）`;
+  if (str.includes("T")) result += ` ${p.hour}:${p.minute}`;
+  return result;
 }
 
 function showView(id) {
@@ -1128,9 +1137,11 @@ async function submitAddTheme() {
 
     btn.textContent = "建立中…";
 
+    // datetime-local 不帶時區，加上 +08:00 避免 Notion 以 UTC 解讀
+    const dtWithTZ = datetime.includes("+") ? datetime : datetime + ":00+08:00";
     const props = {
       "課程名稱":  { title: [{ text: { content: name } }] },
-      "日期時間":  { date: { start: datetime } },
+      "日期時間":  { date: { start: dtWithTZ } },
       "報名狀態":  { select: { name: status } },
       "名額上限":  { number: capacity },
       "扣除堂數":  { number: deduct },
@@ -1178,12 +1189,17 @@ function showEditTheme(themeId) {
   document.getElementById("edit-page-id").value = t.id;
   document.getElementById("edit-name").value    = t.properties["課程名稱"]?.title?.[0]?.text?.content || "";
   
-  // Format date to datetime-local format (YYYY-MM-DDThh:mm)
+  // Format date to datetime-local format (YYYY-MM-DDThh:mm)，使用 Asia/Taipei 時區
   const dateStr = t.properties["日期時間"]?.date?.start || "";
   if (dateStr) {
     const d = new Date(dateStr.includes("T") ? dateStr : dateStr + "T00:00:00+08:00");
     const pad = (n) => String(n).padStart(2, "0");
-    const val = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const pts = new Intl.DateTimeFormat("en", {
+      timeZone: "Asia/Taipei", year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", hour12: false,
+    }).formatToParts(d);
+    const g = {}; pts.forEach(x => g[x.type] = x.value);
+    const val = `${g.year}-${g.month}-${g.day}T${g.hour}:${g.minute}`;
     document.getElementById("edit-date").value = val;
   } else {
     document.getElementById("edit-date").value = "";
@@ -1238,9 +1254,11 @@ async function submitEditTheme() {
     }
     btn.textContent = "儲存中…";
 
+    // datetime-local 不帶時區，加上 +08:00 避免 Notion 以 UTC 解讀
+    const dtWithTZ = datetime.includes("+") ? datetime : datetime + ":00+08:00";
     const props = {
       "課程名稱":  { title: [{ text: { content: name } }] },
-      "日期時間":  { date: { start: datetime } },
+      "日期時間":  { date: { start: dtWithTZ } },
       "報名狀態":  { select: { name: status } },
       "名額上限":  { number: capacity },
       "扣除堂數":  { number: deduct },
