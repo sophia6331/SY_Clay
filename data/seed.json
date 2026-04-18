@@ -1,0 +1,190 @@
+// normalize-seed.ts
+import fs from "node:fs";
+
+type AnyObj = Record<string, any>;
+
+const INPUT = "seed.json";
+const OUTPUT = "seed.normalized.json";
+
+// 你可以依表調整：哪些欄位是「關聯欄位」(relation)
+const RELATION_FIELDS_BY_TABLE: Record<string, string[]> = {
+  Child: ["Parent", "Photo", "Purchase", "Session"],
+  Photo: ["關聯孩子", "關聯課程"],
+  Parent: ["Child"],
+  Purchase: ["Child"],
+  Session: ["出席孩子", "Photo"],
+  // ThemeEvent, WeeklySchedule, PricePlan, HEROSLIDE 目前沒有 relation 欄位
+};
+
+// 你可以依表調整：哪些欄位是 checkbox
+const CHECKBOX_FIELDS_BY_TABLE: Record<string, string[]> = {
+  Photo: ["老師確認"],
+  PricePlan: ["啟用狀態", "推薦方案"],
+  WeeklySchedule: ["當日關閉", "臨時暫停"],
+  HEROSLIDE: ["啟用"],
+  // 其他表如果之後新增 checkbox，也加在這裡
+};
+
+// 你可以依表調整：哪些欄位是 date（要把 date:xxx:* 合併）
+const DATE_FIELDS_BY_TABLE: Record<string, string[]> = {
+  Child: ["生日"],
+  Parent: ["綁定時間"],
+  Purchase: ["付款日期"],
+  Session: ["日期"],
+  ThemeEvent: ["日期時間"],
+};
+
+function notionUrlToId(urlOrId: any): string | null {
+  if (!urlOrId) return null;
+  if (typeof urlOrId !== "string") return null;
+
+  // 已經是 32 字元 id（無橫線）
+  if (/^[0-9a-fA-F]{32}$/.test(urlOrId)) return urlOrId.toLowerCase();
+
+  // 可能是 UUID（有橫線）
+  if (/^[0-9a-fA-F-]{36}$/.test(urlOrId)) return urlOrId.replaceAll("-", "").toLowerCase();
+
+  // Notion URL 末段通常含 uuid
+  // 例：https://www.notion.so/.../Ethan-338c38a5-6efe-8065-8803-dc5f478df415
+  const m1 = urlOrId.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
+  if (m1) return m1[0].replaceAll("-", "").toLowerCase();
+
+  // 有些情況可能直接含 32 字元
+  const m2 = urlOrId.match(/[0-9a-fA-F]{32}/);
+  if (m2) return m2[0].toLowerCase();
+
+  return null;
+}
+
+function checkboxToBool(v: any): boolean {
+  // 你希望 JSON 原生布林值
+  if (v === true) return true;
+  if (v === false) return false;
+  if (v === "__YES__") return true;
+  if (v === "__NO__") return false;
+
+  // Notion 匯出常見：NULL / undefined 表示 false
+  return false;
+}
+
+function coerceIsoToTaipei(iso: string): string {
+  // 如果是 "2026-06-28 03:00:00Z"（中間有空白）先補成標準 ISO
+  const normalized = iso.includes(" ") && iso.endsWith("Z")
+    ? iso.replace(" ", "T")
+    : iso;
+
+  const d = new Date(normalized);
+  // 轉成 +08:00 字串（不依賴系統時區）
+  const tzOffsetMinutes = 8 * 60;
+  const localMs = d.getTime() + tzOffsetMinutes * 60_000;
+  const local = new Date(localMs);
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const yyyy = local.getUTCFullYear();
+  const MM = pad(local.getUTCMonth() + 1);
+  const dd = pad(local.getUTCDate());
+  const hh = pad(local.getUTCHours());
+  const mm = pad(local.getUTCMinutes());
+  const ss = pad(local.getUTCSeconds());
+
+  // 帶上 +08:00
+  return `${yyyy}-${MM}-${dd}T${hh}:${mm}:${ss}+08:00`;
+}
+
+function mergeDateFields(row: AnyObj, fieldName: string): AnyObj {
+  // 支援兩種來源：
+  // 1) date:生日:start / end / is_datetime
+  // 2) date:日期時間:start 可能是帶 Z 的 datetime 或 date
+  const startKey = `date:${fieldName}:start`;
+  const endKey = `date:${fieldName}:end`;
+  const isDtKey = `date:${fieldName}:is_datetime`;
+
+  const start = row[startKey];
+  const end = row[endKey];
+
+  if (start == null && end == null) return row;
+
+  const isDatetime = row[isDtKey] === 1 || row[isDtKey] === true;
+
+  // 日期含時間：轉成 +08:00（你希望的格式）
+  // 日期不含時間：保留 YYYY-MM-DD
+  const startOut =
+    start == null
+      ? null
+      : isDatetime
+        ? coerceIsoToTaipei(String(start))
+        : String(start);
+
+  const endOut =
+    end == null
+      ? null
+      : isDatetime
+        ? coerceIsoToTaipei(String(end))
+        : String(end);
+
+  // 移除展開欄位
+  const out: AnyObj = { ...row };
+  delete out[startKey];
+  delete out[endKey];
+  delete out[isDtKey];
+
+  // 寫入合併物件
+  out[fieldName] = { start: startOut, end: endOut };
+
+  return out;
+}
+
+function normalizeRow(tableName: string, row: AnyObj): AnyObj {
+  const out: AnyObj = { ...row };
+
+  // 1) url -> id
+  if (out.url) {
+    const id = notionUrlToId(out.url);
+    delete out.url;
+    if (id) out.id = id;
+  }
+
+  // 2) checkbox fields
+  for (const f of CHECKBOX_FIELDS_BY_TABLE[tableName] ?? []) {
+    if (f in out) out[f] = checkboxToBool(out[f]);
+  }
+
+  // 3) relation fields: array of urls -> array of ids
+  for (const f of RELATION_FIELDS_BY_TABLE[tableName] ?? []) {
+    if (!(f in out)) continue;
+    const v = out[f];
+    if (v == null) {
+      out[f] = [];
+      continue;
+    }
+    const arr = Array.isArray(v) ? v : [v];
+    out[f] = arr
+      .map(notionUrlToId)
+      .filter((x): x is string => Boolean(x));
+  }
+
+  // 4) merge date fields
+  for (const f of DATE_FIELDS_BY_TABLE[tableName] ?? []) {
+    Object.assign(out, mergeDateFields(out, f));
+  }
+
+  // 5) createdTime：若不想存可刪掉（通常 seed 不一定需要）
+  // delete out.createdTime;
+
+  return out;
+}
+
+function normalizeSeed(rawSeed: AnyObj): AnyObj {
+  const out: AnyObj = {};
+  for (const [tableName, rows] of Object.entries(rawSeed)) {
+    if (!Array.isArray(rows)) continue;
+    out[tableName] = rows.map((r) => normalizeRow(tableName, r));
+  }
+  return out;
+}
+
+// main
+const raw = JSON.parse(fs.readFileSync(INPUT, "utf8"));
+const normalized = normalizeSeed(raw);
+fs.writeFileSync(OUTPUT, JSON.stringify(normalized, null, 2), "utf8");
+console.log(`Wrote ${OUTPUT}`);
