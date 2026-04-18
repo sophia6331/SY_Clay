@@ -271,7 +271,7 @@ function calcAge(b) {
   if (!b) return "";
   const bd = new Date(b + "T00:00:00+08:00"), n = new Date();
   let y = n.getFullYear()-bd.getFullYear(), m = n.getMonth()-bd.getMonth();
-  if (m<0){y--;m+=12;} if(n.getDate()<bd.getDate())m--;if(m<0){y--;m+=11;}
+  if (m<0){y--;m+=12;} if(n.getDate()<bd.getDate())m--;if(m<0){y--;m+=12;}
   return `${y}歲${m}個月`;
 }
 
