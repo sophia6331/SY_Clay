@@ -119,7 +119,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;ba
   <!-- Sidebar -->
   <div class="sb">
     <div class="sb-logo">
-      <img src="../images/learnlink_logo.png" alt="LearnLink">
+      <img src="images/learnlink_logo.png" alt="LearnLink">
     </div>
     <div class="sdiv" style="margin:0 12px 4px;"></div>
 
@@ -414,7 +414,7 @@ function calcAge(birthdayStr) {
   let months = now.getMonth() - birth.getMonth();
   if (months < 0) { years--; months += 12; }
   if (now.getDate() < birth.getDate()) months--;
-  if (months < 0) { years--; months += 11; }
+  if (months < 0) { years--; months += 12; }
   return `${years}歲${months}個月`;
 }
 
