@@ -1,190 +1,507 @@
-// normalize-seed.ts
-import fs from "node:fs";
-
-type AnyObj = Record<string, any>;
-
-const INPUT = "seed.json";
-const OUTPUT = "seed.normalized.json";
-
-// 你可以依表調整：哪些欄位是「關聯欄位」(relation)
-const RELATION_FIELDS_BY_TABLE: Record<string, string[]> = {
-  Child: ["Parent", "Photo", "Purchase", "Session"],
-  Photo: ["關聯孩子", "關聯課程"],
-  Parent: ["Child"],
-  Purchase: ["Child"],
-  Session: ["出席孩子", "Photo"],
-  // ThemeEvent, WeeklySchedule, PricePlan, HEROSLIDE 目前沒有 relation 欄位
-};
-
-// 你可以依表調整：哪些欄位是 checkbox
-const CHECKBOX_FIELDS_BY_TABLE: Record<string, string[]> = {
-  Photo: ["老師確認"],
-  PricePlan: ["啟用狀態", "推薦方案"],
-  WeeklySchedule: ["當日關閉", "臨時暫停"],
-  HEROSLIDE: ["啟用"],
-  // 其他表如果之後新增 checkbox，也加在這裡
-};
-
-// 你可以依表調整：哪些欄位是 date（要把 date:xxx:* 合併）
-const DATE_FIELDS_BY_TABLE: Record<string, string[]> = {
-  Child: ["生日"],
-  Parent: ["綁定時間"],
-  Purchase: ["付款日期"],
-  Session: ["日期"],
-  ThemeEvent: ["日期時間"],
-};
-
-function notionUrlToId(urlOrId: any): string | null {
-  if (!urlOrId) return null;
-  if (typeof urlOrId !== "string") return null;
-
-  // 已經是 32 字元 id（無橫線）
-  if (/^[0-9a-fA-F]{32}$/.test(urlOrId)) return urlOrId.toLowerCase();
-
-  // 可能是 UUID（有橫線）
-  if (/^[0-9a-fA-F-]{36}$/.test(urlOrId)) return urlOrId.replaceAll("-", "").toLowerCase();
-
-  // Notion URL 末段通常含 uuid
-  // 例：https://www.notion.so/.../Ethan-338c38a5-6efe-8065-8803-dc5f478df415
-  const m1 = urlOrId.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/);
-  if (m1) return m1[0].replaceAll("-", "").toLowerCase();
-
-  // 有些情況可能直接含 32 字元
-  const m2 = urlOrId.match(/[0-9a-fA-F]{32}/);
-  if (m2) return m2[0].toLowerCase();
-
-  return null;
-}
-
-function checkboxToBool(v: any): boolean {
-  // 你希望 JSON 原生布林值
-  if (v === true) return true;
-  if (v === false) return false;
-  if (v === "__YES__") return true;
-  if (v === "__NO__") return false;
-
-  // Notion 匯出常見：NULL / undefined 表示 false
-  return false;
-}
-
-function coerceIsoToTaipei(iso: string): string {
-  // 如果是 "2026-06-28 03:00:00Z"（中間有空白）先補成標準 ISO
-  const normalized = iso.includes(" ") && iso.endsWith("Z")
-    ? iso.replace(" ", "T")
-    : iso;
-
-  const d = new Date(normalized);
-  // 轉成 +08:00 字串（不依賴系統時區）
-  const tzOffsetMinutes = 8 * 60;
-  const localMs = d.getTime() + tzOffsetMinutes * 60_000;
-  const local = new Date(localMs);
-
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const yyyy = local.getUTCFullYear();
-  const MM = pad(local.getUTCMonth() + 1);
-  const dd = pad(local.getUTCDate());
-  const hh = pad(local.getUTCHours());
-  const mm = pad(local.getUTCMinutes());
-  const ss = pad(local.getUTCSeconds());
-
-  // 帶上 +08:00
-  return `${yyyy}-${MM}-${dd}T${hh}:${mm}:${ss}+08:00`;
-}
-
-function mergeDateFields(row: AnyObj, fieldName: string): AnyObj {
-  // 支援兩種來源：
-  // 1) date:生日:start / end / is_datetime
-  // 2) date:日期時間:start 可能是帶 Z 的 datetime 或 date
-  const startKey = `date:${fieldName}:start`;
-  const endKey = `date:${fieldName}:end`;
-  const isDtKey = `date:${fieldName}:is_datetime`;
-
-  const start = row[startKey];
-  const end = row[endKey];
-
-  if (start == null && end == null) return row;
-
-  const isDatetime = row[isDtKey] === 1 || row[isDtKey] === true;
-
-  // 日期含時間：轉成 +08:00（你希望的格式）
-  // 日期不含時間：保留 YYYY-MM-DD
-  const startOut =
-    start == null
-      ? null
-      : isDatetime
-        ? coerceIsoToTaipei(String(start))
-        : String(start);
-
-  const endOut =
-    end == null
-      ? null
-      : isDatetime
-        ? coerceIsoToTaipei(String(end))
-        : String(end);
-
-  // 移除展開欄位
-  const out: AnyObj = { ...row };
-  delete out[startKey];
-  delete out[endKey];
-  delete out[isDtKey];
-
-  // 寫入合併物件
-  out[fieldName] = { start: startOut, end: endOut };
-
-  return out;
-}
-
-function normalizeRow(tableName: string, row: AnyObj): AnyObj {
-  const out: AnyObj = { ...row };
-
-  // 1) url -> id
-  if (out.url) {
-    const id = notionUrlToId(out.url);
-    delete out.url;
-    if (id) out.id = id;
-  }
-
-  // 2) checkbox fields
-  for (const f of CHECKBOX_FIELDS_BY_TABLE[tableName] ?? []) {
-    if (f in out) out[f] = checkboxToBool(out[f]);
-  }
-
-  // 3) relation fields: array of urls -> array of ids
-  for (const f of RELATION_FIELDS_BY_TABLE[tableName] ?? []) {
-    if (!(f in out)) continue;
-    const v = out[f];
-    if (v == null) {
-      out[f] = [];
-      continue;
+{
+  "Child": [
+    {
+      "id": "338c38a56efe80658803dc5f478df415",
+      "暱稱": "Ethan",
+      "生日": { "start": "2024-04-05", "end": null },
+      "性別": "男",
+      "大頭照連結": "http://photos.google.com",
+      "Parent": ["338c38a56efe81a19fefd2a9ecba7410"],
+      "Photo": [],
+      "Purchase": ["339c38a56efe812b8a65e34dbd4cd9df"],
+      "Session": []
+    },
+    {
+      "id": "339c38a56efe81b48afcc1412255b5bf",
+      "暱稱": "小寶",
+      "生日": { "start": "2020-03-03", "end": null },
+      "性別": null,
+      "大頭照連結": null,
+      "Parent": ["338c38a56efe81a19fefd2a9ecba7410"],
+      "Photo": [],
+      "Purchase": ["344c38a56efe819d8aa4c962afb030e2"],
+      "Session": []
+    },
+    {
+      "id": "33dc38a56efe8107bffcfadccf097491",
+      "暱稱": "Yola",
+      "生日": { "start": "2022-12-04", "end": null },
+      "性別": null,
+      "大頭照連結": null,
+      "Parent": ["338c38a56efe81a19fefd2a9ecba7410"],
+      "Photo": ["33dc38a56efe81b7af41ecf462f41d6a", "344c38a56efe8116919bc34cc3022562"],
+      "Purchase": ["33dc38a56efe8178bd80c2b060865767"],
+      "Session": []
+    },
+    {
+      "id": "33dc38a56efe8123b31dda3446e00825",
+      "暱稱": "Sean",
+      "生日": { "start": "2025-04-09", "end": null },
+      "性別": null,
+      "大頭照連結": null,
+      "Parent": ["338c38a56efe81a19fefd2a9ecba7410"],
+      "Photo": ["33dc38a56efe81b6a8f2e89a14fd9c4b", "344c38a56efe81c68c57e7f24024007d"],
+      "Purchase": ["344c38a56efe812fa5c8c0b380694563"],
+      "Session": []
+    },
+    {
+      "id": "344c38a56efe814ca458f0b1f3ef448b",
+      "暱稱": "May",
+      "生日": { "start": "2021-01-01", "end": null },
+      "性別": null,
+      "大頭照連結": null,
+      "Parent": ["338c38a56efe81a19fefd2a9ecba7410"],
+      "Photo": [],
+      "Purchase": [],
+      "Session": []
     }
-    const arr = Array.isArray(v) ? v : [v];
-    out[f] = arr
-      .map(notionUrlToId)
-      .filter((x): x is string => Boolean(x));
-  }
-
-  // 4) merge date fields
-  for (const f of DATE_FIELDS_BY_TABLE[tableName] ?? []) {
-    Object.assign(out, mergeDateFields(out, f));
-  }
-
-  // 5) createdTime：若不想存可刪掉（通常 seed 不一定需要）
-  // delete out.createdTime;
-
-  return out;
+  ],
+  "Photo": [
+    {
+      "id": "33dc38a56efe81b6a8f2e89a14fd9c4b",
+      "照片 ID": "P-1775737392009-UDE",
+      "Google Drive URL": "https://drive.google.com/uc?id=17rxJjiRJU4ZrRtzFomIeLr3DAu8lD2w7",
+      "照片分類": "Sean",
+      "AI 辨識結果": null,
+      "老師確認": false,
+      "關聯孩子": ["33dc38a56efe8123b31dda3446e00825"],
+      "關聯課程": ["33dc38a56efe8168890bc807f9641e3e"]
+    },
+    {
+      "id": "33dc38a56efe81b7af41ecf462f41d6a",
+      "照片 ID": "P-1775737404037-YBV",
+      "Google Drive URL": "https://drive.google.com/uc?id=1uW1B-Bhf9A7whVmV7BhCW7mmlm9MBQW8",
+      "照片分類": "Yola",
+      "AI 辨識結果": null,
+      "老師確認": false,
+      "關聯孩子": ["33dc38a56efe8107bffcfadccf097491"],
+      "關聯課程": ["33dc38a56efe8168890bc807f9641e3e"]
+    },
+    {
+      "id": "344c38a56efe8116919bc34cc3022562",
+      "照片 ID": "P-1776315971245-RPH",
+      "Google Drive URL": "https://drive.google.com/uc?id=1un1xVzeF976fnErq04GlQ6aiChfefGX1",
+      "照片分類": "Yola",
+      "AI 辨識結果": null,
+      "老師確認": false,
+      "關聯孩子": ["33dc38a56efe8107bffcfadccf097491"],
+      "關聯課程": ["344c38a56efe8148a97ad2810566391d"]
+    },
+    {
+      "id": "344c38a56efe81c68c57e7f24024007d",
+      "照片 ID": "P-1776315963466-SN3",
+      "Google Drive URL": "https://drive.google.com/uc?id=1yjGS36KOOUXLh2LQLZ3m8a6nlEq0zM1w",
+      "照片分類": "Sean",
+      "AI 辨識結果": null,
+      "老師確認": false,
+      "關聯孩子": ["33dc38a56efe8123b31dda3446e00825"],
+      "關聯課程": ["344c38a56efe8148a97ad2810566391d"]
+    }
+  ],
+  "PricePlan": [
+    {
+      "id": "338c38a56efe80a1b2e0fa03a59f95f0",
+      "方案名稱": "多堂方案",
+      "堂數": 25,
+      "總價": 12000,
+      "啟用狀態": true,
+      "推薦方案": true
+    },
+    {
+      "id": "338c38a56efe80c192bbcd1f347abf50",
+      "方案名稱": "通用方案",
+      "堂數": 1,
+      "總價": 550,
+      "啟用狀態": true,
+      "推薦方案": false
+    },
+    {
+      "id": "339c38a56efe81d3b940d60c89fc8422",
+      "方案名稱": "10堂課方案",
+      "堂數": 10,
+      "總價": 5000,
+      "啟用狀態": false,
+      "推薦方案": false
+    }
+  ],
+  "Parent": [
+    {
+      "id": "338c38a56efe81a19fefd2a9ecba7410",
+      "LINE UID": "U61e6f98883fcb5d45855211e0d598c98",
+      "LINE 顯示名稱": null,
+      "備註": "想暫停一陣子",
+      "綁定時間": { "start": "2026-04-04", "end": null },
+      "Child": [
+        "339c38a56efe81b48afcc1412255b5bf",
+        "33dc38a56efe8123b31dda3446e00825",
+        "33dc38a56efe8107bffcfadccf097491",
+        "344c38a56efe814ca458f0b1f3ef448b"
+      ]
+    },
+    {
+      "id": "346c38a56efe813a90b7d86683c89b5a",
+      "LINE UID": "U67dad5fe15191928ea8ba25182135a60",
+      "LINE 顯示名稱": null,
+      "備註": null,
+      "綁定時間": { "start": "2026-04-18", "end": null },
+      "Child": []
+    }
+  ],
+  "Purchase": [
+    {
+      "id": "339c38a56efe812b8a65e34dbd4cd9df",
+      "購買 ID": "P-2026-04-05-9MG9",
+      "Child": ["338c38a56efe80658803dc5f478df415"],
+      "方案名稱": "多堂方案",
+      "購買堂數": 25,
+      "總金額": 12000,
+      "付款日期": { "start": "2026-04-05", "end": null },
+      "付款方式": "現金",
+      "收款老師": "Sophia",
+      "匯款末 5 碼": null,
+      "備註": null
+    },
+    {
+      "id": "33dc38a56efe8178bd80c2b060865767",
+      "購買 ID": "P-2026-04-09-GA93",
+      "Child": ["33dc38a56efe8107bffcfadccf097491"],
+      "方案名稱": "多堂方案",
+      "購買堂數": 25,
+      "總金額": 12000,
+      "付款日期": { "start": "2026-04-09", "end": null },
+      "付款方式": "現金",
+      "收款老師": "Sophia",
+      "匯款末 5 碼": null,
+      "備註": null
+    },
+    {
+      "id": "344c38a56efe812fa5c8c0b380694563",
+      "購買 ID": "P-2026-04-16-RK3R",
+      "Child": ["33dc38a56efe8123b31dda3446e00825"],
+      "方案名稱": "自訂",
+      "購買堂數": 7,
+      "總金額": 4500,
+      "付款日期": { "start": "2026-04-16", "end": null },
+      "付款方式": "現金",
+      "收款老師": null,
+      "匯款末 5 碼": null,
+      "備註": null
+    },
+    {
+      "id": "344c38a56efe819d8aa4c962afb030e2",
+      "購買 ID": "P-2026-04-16-3I2K",
+      "Child": ["339c38a56efe81b48afcc1412255b5bf"],
+      "方案名稱": "自訂",
+      "購買堂數": 10,
+      "總金額": 5500,
+      "付款日期": { "start": "2026-04-16", "end": null },
+      "付款方式": "現金",
+      "收款老師": null,
+      "匯款末 5 碼": null,
+      "備註": null
+    },
+    {
+      "id": "346c38a56efe81de8fe9eac4a26f5525",
+      "購買 ID": "P-2026-04-18-7EWV",
+      "Child": [],
+      "方案名稱": "多堂方案",
+      "購買堂數": 25,
+      "總金額": 12000,
+      "付款日期": { "start": "2026-04-18", "end": null },
+      "付款方式": "現金",
+      "收款老師": null,
+      "匯款末 5 碼": null,
+      "備註": null
+    }
+  ],
+  "Session": [
+    {
+      "id": "33dc38a56efe81099d49fd8ed8a869b8",
+      "課程 ID": null,
+      "日期": { "start": "2026-04-10", "end": null },
+      "課程類型": null,
+      "時段": "16:30",
+      "扣除堂數": 1,
+      "出席孩子": ["33dc38a56efe8123b31dda3446e00825"],
+      "備註": null,
+      "Photo": []
+    },
+    {
+      "id": "33dc38a56efe81249d4cff165929638a",
+      "課程 ID": null,
+      "日期": { "start": "2026-04-13", "end": null },
+      "課程類型": null,
+      "時段": "18:00",
+      "扣除堂數": 1,
+      "出席孩子": ["33dc38a56efe8107bffcfadccf097491"],
+      "備註": null,
+      "Photo": []
+    },
+    {
+      "id": "33dc38a56efe814ca104cfa6f2a1f6f0",
+      "課程 ID": null,
+      "日期": { "start": "2026-04-10", "end": null },
+      "課程類型": null,
+      "時段": "16:30",
+      "扣除堂數": 1,
+      "出席孩子": ["33dc38a56efe8107bffcfadccf097491"],
+      "備註": null,
+      "Photo": []
+    },
+    {
+      "id": "33dc38a56efe814d9743f02a8991d4c6",
+      "課程 ID": null,
+      "日期": { "start": "2026-04-10", "end": null },
+      "課程類型": null,
+      "時段": "16:30",
+      "扣除堂數": 1,
+      "出席孩子": ["339c38a56efe81b48afcc1412255b5bf"],
+      "備註": null,
+      "Photo": []
+    },
+    {
+      "id": "33dc38a56efe8151876ee24d12951a97",
+      "課程 ID": null,
+      "日期": { "start": "2026-04-13", "end": null },
+      "課程類型": null,
+      "時段": "17:30",
+      "扣除堂數": 1,
+      "出席孩子": ["33dc38a56efe8107bffcfadccf097491"],
+      "備註": null,
+      "Photo": []
+    },
+    {
+      "id": "33dc38a56efe8168890bc807f9641e3e",
+      "課程 ID": "S-2026-04-09-V7FG",
+      "日期": { "start": "2026-04-09", "end": null },
+      "課程類型": "一般課程",
+      "時段": null,
+      "扣除堂數": 1,
+      "出席孩子": ["33dc38a56efe8123b31dda3446e00825", "33dc38a56efe8107bffcfadccf097491"],
+      "備註": null,
+      "Photo": ["33dc38a56efe81b6a8f2e89a14fd9c4b", "33dc38a56efe81b7af41ecf462f41d6a"]
+    },
+    {
+      "id": "33dc38a56efe8187bddbf5bb92b327ed",
+      "課程 ID": null,
+      "日期": { "start": "2026-04-13", "end": null },
+      "課程類型": null,
+      "時段": "17:30",
+      "扣除堂數": 1,
+      "出席孩子": ["339c38a56efe81b48afcc1412255b5bf"],
+      "備註": null,
+      "Photo": []
+    },
+    {
+      "id": "33dc38a56efe81ab8e90deff8a5c631b",
+      "課程 ID": "S-2026-04-09-6YHW",
+      "日期": { "start": "2026-04-09", "end": null },
+      "課程類型": "一般課程",
+      "時段": null,
+      "扣除堂數": 1,
+      "出席孩子": ["339c38a56efe81b48afcc1412255b5bf", "33dc38a56efe8107bffcfadccf097491", "33dc38a56efe8123b31dda3446e00825"],
+      "備註": null,
+      "Photo": []
+    },
+    {
+      "id": "342c38a56efe81768744c001ed7b7e7b",
+      "課程 ID": null,
+      "日期": { "start": "2026-04-16", "end": null },
+      "課程類型": null,
+      "時段": "16:30",
+      "扣除堂數": 1,
+      "出席孩子": ["33dc38a56efe8107bffcfadccf097491"],
+      "備註": null,
+      "Photo": []
+    },
+    {
+      "id": "344c38a56efe81458543fb7d89bc176b",
+      "課程 ID": null,
+      "日期": { "start": "2026-04-17", "end": null },
+      "課程類型": null,
+      "時段": "16:30",
+      "扣除堂數": 1,
+      "出席孩子": ["33dc38a56efe8123b31dda3446e00825"],
+      "備註": null,
+      "Photo": []
+    },
+    {
+      "id": "344c38a56efe8148a97ad2810566391d",
+      "課程 ID": "S-2026-04-17-9KN9",
+      "日期": { "start": "2026-04-17", "end": null },
+      "課程類型": "一般課程",
+      "時段": "17:30-18:00",
+      "扣除堂數": 1,
+      "出席孩子": ["33dc38a56efe8123b31dda3446e00825", "33dc38a56efe8107bffcfadccf097491"],
+      "備註": null,
+      "Photo": ["344c38a56efe81c68c57e7f24024007d", "344c38a56efe8116919bc34cc3022562"]
+    },
+    {
+      "id": "344c38a56efe81989931d214aba9107e",
+      "課程 ID": null,
+      "日期": { "start": "2026-05-01", "end": null },
+      "課程類型": null,
+      "時段": "16:30",
+      "扣除堂數": 1,
+      "出席孩子": ["33dc38a56efe8123b31dda3446e00825"],
+      "備註": null,
+      "Photo": []
+    },
+    {
+      "id": "344c38a56efe81d2bc7bf5e3be88d7cc",
+      "課程 ID": null,
+      "日期": { "start": "2026-04-24", "end": null },
+      "課程類型": null,
+      "時段": "16:30",
+      "扣除堂數": 1,
+      "出席孩子": ["33dc38a56efe8123b31dda3446e00825"],
+      "備註": null,
+      "Photo": []
+    }
+  ],
+  "WeeklySchedule": [
+    {
+      "id": "339c38a56efe8006b14cfb5f68e645b0",
+      "星期": "週三",
+      "開始時間": "16:30",
+      "結束時間": "18:30",
+      "人數上限": 6,
+      "臨時暫停": false,
+      "暫停說明": null,
+      "當日關閉": false
+    },
+    {
+      "id": "339c38a56efe802f914ae6eb6cc8c607",
+      "星期": "週四",
+      "開始時間": "16:30",
+      "結束時間": "19:30",
+      "人數上限": 6,
+      "臨時暫停": false,
+      "暫停說明": null,
+      "當日關閉": false
+    },
+    {
+      "id": "339c38a56efe8045a7e5ea37ce1b9daf",
+      "星期": "週日",
+      "開始時間": "9:00",
+      "結束時間": "12:00",
+      "人數上限": 6,
+      "臨時暫停": false,
+      "暫停說明": null,
+      "當日關閉": true
+    },
+    {
+      "id": "339c38a56efe806da395c260849753b3",
+      "星期": "週六",
+      "開始時間": "9:00",
+      "結束時間": "12:00",
+      "人數上限": 6,
+      "臨時暫停": false,
+      "暫停說明": null,
+      "當日關閉": false
+    },
+    {
+      "id": "339c38a56efe80acaacbfd8b2f1561fd",
+      "星期": "週五",
+      "開始時間": "16:30",
+      "結束時間": "19:30",
+      "人數上限": 6,
+      "臨時暫停": false,
+      "暫停說明": null,
+      "當日關閉": false
+    },
+    {
+      "id": "339c38a56efe80f5a566c6e86cb6ced5",
+      "星期": "週二",
+      "開始時間": "16:30",
+      "結束時間": "19:30",
+      "人數上限": 6,
+      "臨時暫停": false,
+      "暫停說明": null,
+      "當日關閉": false
+    },
+    {
+      "id": "339c38a56efe80f6993ae3520ac634f9",
+      "星期": "週一",
+      "開始時間": "16:30",
+      "結束時間": "19:30",
+      "人數上限": 6,
+      "臨時暫停": false,
+      "暫停說明": null,
+      "當日關閉": false
+    }
+  ],
+  "ThemeEvent": [
+    {
+      "id": "339c38a56efe81538394f898d36cecf5",
+      "課程名稱": "小小助教計畫",
+      "課程說明": "上課滿10堂且通過一系列測驗的孩子，表示他在能力與性格上都有辦法剩任小助教，即可頒發證書，並且開始實際成為助教一起教學。在協助他人的過程中，小朋友會培養責任感、溝通力與領導力。",
+      "封面圖連結": "https://drive.google.com/uc?id=16wK1kwasVW5GsyF6MzJhQZkve1VrKyxn",
+      "名額上限": 8,
+      "報名狀態": "開放",
+      "報名名單": "Claire",
+      "扣除堂數": 3,
+      "日期時間": { "start": "2026-06-28T11:00:00+08:00", "end": null }
+    },
+    {
+      "id": "339c38a56efe819db7b7e4f64f53c7c5",
+      "課程名稱": "母親節花束瓶",
+      "課程說明": "孩子可以玩到模型與上色，更簡單又更好玩！\n快做一個送給媽媽 🥰",
+      "封面圖連結": "https://drive.google.com/uc?id=15fwOzwj42aNHuVFDjgQloV3DIYi4_HMh",
+      "名額上限": 8,
+      "報名狀態": "開放",
+      "報名名單": "Yola",
+      "扣除堂數": 2,
+      "日期時間": { "start": "2026-04-19T10:00:00+08:00", "end": null }
+    },
+    {
+      "id": "339c38a56efe81a8a987fa6bd6ee26db",
+      "課程名稱": "一日甜點店",
+      "課程說明": "2小時的活動中，小朋友們化身甜點施，先製作6個可愛甜點，學會捏塑、模型、上色、擠花等技巧。\n小朋友們變成小老闆，模擬真實甜點販售情境，孩子學習定價、服務客人，培養數感與溝通力。",
+      "封面圖連結": "https://drive.google.com/uc?id=1ak7N4YqVvYf9vBwKo3YkJb6obZccq_gb",
+      "名額上限": 6,
+      "報名狀態": "開放",
+      "報名名單": "Yola",
+      "扣除堂數": 3,
+      "日期時間": { "start": "2026-05-02T09:00:00+08:00", "end": null }
+    }
+  ],
+  "HEROSLIDE": [
+    {
+      "id": "33ac38a56efe810eb7d7d6b743c97a85",
+      "主題課程ID": "339c38a56efe81538394f898d36cecf5",
+      "副標題": "相信孩子的潛能，他們可以成為老師的最強助教！",
+      "啟用": true,
+      "圖示": "🖼️",
+      "外部連結": null,
+      "封面圖連結": "https://drive.google.com/uc?id=1eQRYntbc5zJE3KJ2Dl5tXa92gWbj1kZB",
+      "排序": 3,
+      "標題": "小小助教計畫",
+      "連結類型": "主題課程"
+    },
+    {
+      "id": "33ac38a56efe8110a140d9d260a552f7",
+      "主題課程ID": "339c38a56efe819db7b7e4f64f53c7c5",
+      "副標題": "做一個送給媽媽吧",
+      "啟用": true,
+      "圖示": "💐",
+      "外部連結": null,
+      "封面圖連結": "https://drive.google.com/uc?id=1pZqbO9pzYYPtPBW4wqWwZREZpa8yrKe7",
+      "排序": 1,
+      "標題": "母親節花束瓶",
+      "連結類型": "主題課程"
+    },
+    {
+      "id": "33ac38a56efe816da3bdd6faea7a3b8b",
+      "主題課程ID": "339c38a56efe81a8a987fa6bd6ee26db",
+      "副標題": "不只做黏土 而是開間店",
+      "啟用": true,
+      "圖示": "🖼️",
+      "外部連結": null,
+      "封面圖連結": "https://drive.google.com/uc?id=1lmF1Cmzw6BgZFjpB2BIjlc5zwssWcP0F",
+      "排序": 2,
+      "標題": "一日甜點店計畫",
+      "連結類型": "主題課程"
+    }
+  ]
 }
-
-function normalizeSeed(rawSeed: AnyObj): AnyObj {
-  const out: AnyObj = {};
-  for (const [tableName, rows] of Object.entries(rawSeed)) {
-    if (!Array.isArray(rows)) continue;
-    out[tableName] = rows.map((r) => normalizeRow(tableName, r));
-  }
-  return out;
-}
-
-// main
-const raw = JSON.parse(fs.readFileSync(INPUT, "utf8"));
-const normalized = normalizeSeed(raw);
-fs.writeFileSync(OUTPUT, JSON.stringify(normalized, null, 2), "utf8");
-console.log(`Wrote ${OUTPUT}`);
